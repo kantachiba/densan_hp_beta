@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="電算機部 — プログラミングと電子工作を探求する部活動のホームページ。About・実績・リンクをご覧ください。" />
+  <title>電算機部 | Computer Science Club</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbit&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+
+  <!-- ========== NAVIGATION ========== -->
+  <nav id="navbar" class="navbar">
+    <div class="nav-inner">
+      <a href="#hero" class="nav-logo" id="nav-logo-link">
+        <img src="img/logo.svg" alt="電算機部ロゴ" class="nav-logo-img" />
+        <span class="nav-logo-text">長岡高専 電算機部</span>
+      </a>
+      <ul class="nav-links" id="nav-links">
+        <li><a href="#about" class="nav-link" id="nav-about">About</a></li>
+        <li><a href="#achievements" class="nav-link" id="nav-achievements">実績</a></li>
+        <li><a href="#links" class="nav-link" id="nav-links-section">リンク</a></li>
+      </ul>
+      <button class="nav-toggle" id="nav-toggle" aria-label="メニューを開く">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- ========== HERO ========== -->
+  <section id="hero" class="hero">
+    <div class="hero-bg">
+      <img src="img/heroimage.png" alt="マザーボード" class="hero-img" />
+      <div class="hero-overlay"></div>
+      <div class="hero-grid"></div>
+    </div>
+    <div class="hero-content">
+      <h1 class="hero-catchphrase">Don't Stop Creation</h1>
+      <p class="hero-clubname">NITNC Computer Club</p>
+    </div>
+    <div class="hero-scroll-hint" id="hero-scroll">
+      <span>Scroll</span>
+      <div class="scroll-line"></div>
+    </div>
+  </section>
+
+  <!-- ========== ABOUT ========== -->
+  <section id="about" class="section about-section">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-label">01 / About</span>
+        <h2 class="section-title">電算機部とは</h2>
+        <div class="title-line"></div>
+      </div>
+      <div class="about-grid">
+        <div class="about-top">
+          <div class="about-text">
+            <p class="about-lead">
+              僕らは作ることをやめない。
+            </p>
+            <p class="about-body">
+            長岡高専電算機部は、プログラミングを中心とした制作・開発活動を行う部活動です。競技プログラミング、アプリ・ゲーム開発、動画制作3Dモデリングなど、様々な分野に取り組んでいます。高専プロコンをはじめとする対外的な大会やイベントにも参加し、チーム開発や短期間での制作を通して実践的な経験を積んでいます。 部内では個人制作と共同制作の両方を行い、成果物の制作・公開を活動の軸としています。
+            電算機部では、分野や手法に縛られず、各自が取り組みたいテーマに対して技術を用いて開発を行っています。
+          </p>
+          </div>
+          <div class="about-stats">
+            <div class="stat-card" id="stat-years">
+              <span class="stat-num">40<span class="stat-unit">年以上</span></span>
+              <span class="stat-label">活動歴</span>
+            </div>
+          </div>
+        </div>
+        <div class="about-cards">
+          <div class="activity-card" id="activity-app">
+            <div class="activity-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <rect x="5" y="2" width="14" height="20" rx="2" />
+                <line x1="12" y1="18" x2="12" y2="18" stroke-linecap="round" stroke-width="2" />
+              </svg>
+            </div>
+            <h3>アプリ製作</h3>
+            <p>モバイル・Webアプリの企画から開発まで。実用的なツールを自分たちの手でゼロから作ります。</p>
+          </div>
+          <div class="activity-card" id="activity-game">
+            <div class="activity-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <rect x="2" y="6" width="20" height="12" rx="2" />
+                <line x1="9" y1="10" x2="9" y2="14" />
+                <line x1="7" y1="12" x2="11" y2="12" />
+                <circle cx="16" cy="10" r="1" fill="currentColor" stroke="none" />
+                <circle cx="18" cy="13" r="1" fill="currentColor" stroke="none" />
+              </svg>
+            </div>
+            <h3>ゲーム開発</h3>
+            <p>UnityやGodotを使ったゲーム制作。アイデアをカタチにして展示・公開しています。</p>
+          </div>
+          <div class="activity-card" id="activity-procon">
+            <div class="activity-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <polyline points="16 18 22 12 16 6" />
+                <polyline points="8 6 2 12 8 18" />
+              </svg>
+            </div>
+            <h3>競技プログラミング</h3>
+            <p>AtCoderなどのコンテストで腕を磨き、高専プロコンにも毎年チームで挑戦しています。</p>
+          </div>
+          <div class="activity-card" id="activity-modeling">
+            <div class="activity-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M12 2L2 7l10 5 10-5-10-5z" />
+                <path d="M2 17l10 5 10-5" />
+                <path d="M2 12l10 5 10-5" />
+              </svg>
+            </div>
+            <h3>3Dモデリング</h3>
+            <p>Blenderでキャラクターや小物のCGを制作。3Dアートとテクノロジーの融合に取り組んでいます。</p>
+          </div>
+          <div class="activity-card" id="activity-design">
+            <div class="activity-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <circle cx="13.5" cy="6.5" r="2.5" />
+                <circle cx="17.5" cy="10.5" r="2.5" />
+                <circle cx="8.5" cy="7.5" r="2.5" />
+                <circle cx="6.5" cy="12.5" r="2.5" />
+                <path d="M12 22c-4.97 0-9-2.69-9-6 0-2.67 2.41-4.96 6-5.77" />
+                <path d="M15 16.5c1.5 0 3-.5 3-2 0-2-1.5-2-1.5-4 0-1.38 1.12-2.5 2.5-2.5" />
+              </svg>
+            </div>
+            <h3>デザイン</h3>
+            <p>ロゴ・UIデザイン・グラフィックなど、部の「見た目」を支えるクリエイティブな活動です。</p>
+          </div>
+          <div class="activity-card" id="activity-hardware">
+            <div class="activity-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <rect x="4" y="4" width="16" height="16" rx="2" />
+                <rect x="9" y="9" width="6" height="6" />
+                <line x1="9" y1="1" x2="9" y2="4" />
+                <line x1="15" y1="1" x2="15" y2="4" />
+                <line x1="9" y1="20" x2="9" y2="23" />
+                <line x1="15" y1="20" x2="15" y2="23" />
+                <line x1="20" y1="9" x2="23" y2="9" />
+                <line x1="20" y1="14" x2="23" y2="14" />
+                <line x1="1" y1="9" x2="4" y2="9" />
+                <line x1="1" y1="14" x2="4" y2="14" />
+              </svg>
+            </div>
+            <h3>ハードウェア</h3>
+            <p>マイコンや電子回路の設計・製作。ソフトとハードを組み合わせた作品づくりに挑戦します。</p>
+          </div>
+          <div class="activity-card" id="activity-video">
+            <div class="activity-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <polygon points="23 7 16 12 23 17 23 7" />
+                <rect x="1" y="5" width="15" height="14" rx="2" />
+              </svg>
+            </div>
+            <h3>動画制作</h3>
+            <p>活動記録・解説・エンタメ動画を撮影・編集し、YouTubeや各種SNSで発信しています。</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== ACTIVITIES ========== -->
+  <section id="achievements" class="section activities-section">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-label">02 / Activities</span>
+        <h2 class="section-title">活動紹介</h2>
+        <div class="title-line"></div>
+      </div>
+      <div class="activities-grid">
+
+        <!-- 上の行: ゲーム製作・動画編集 -->
+        <div class="act-card" id="act-game">
+          <div class="act-card-img-wrap">
+            <img src="img/game.png" alt="ゲーム製作" class="act-card-img" />
+            <div class="act-card-overlay"></div>
+          </div>
+          <div class="act-card-body">
+            <h3 class="act-card-title">ゲーム製作</h3>
+            <p class="act-card-desc">UnityやGodotを使ってオリジナルゲームを制作。アイデアをカタチにして展示・公開しています。</p>
+          </div>
+        </div>
+
+        <div class="act-card" id="act-movie">
+          <div class="act-card-img-wrap">
+            <img src="img/movie.png" alt="動画編集" class="act-card-img" />
+            <div class="act-card-overlay"></div>
+          </div>
+          <div class="act-card-body">
+            <h3 class="act-card-title">動画編集</h3>
+            <p class="act-card-desc">活動記録や解説動画の制作・編集を行い、YouTubeなどで発信。映像表現のスキルも磨いています。</p>
+          </div>
+        </div>
+
+        <!-- 下の行: 高専プロコン・展示活動・モデリング -->
+        <div class="act-card act-card--small" id="act-procon">
+          <div class="act-card-img-wrap">
+            <img src="img/procon.jpg" alt="高専プログラミングコンテスト" class="act-card-img" />
+            <div class="act-card-overlay"></div>
+          </div>
+          <div class="act-card-body">
+            <h3 class="act-card-title">高専プログラミングコンテスト</h3>
+            <p class="act-card-desc">全国の高専生が集まるプログラミングコンテストに毎年出場。アルゴリズムとチームワークで上位を目指します。</p>
+          </div>
+        </div>
+
+        <div class="act-card act-card--small" id="act-bunkasai">
+          <div class="act-card-img-wrap">
+            <img src="img/bunkasai.jpg" alt="展示活動" class="act-card-img" />
+            <div class="act-card-overlay"></div>
+          </div>
+          <div class="act-card-body">
+            <h3 class="act-card-title">展示活動</h3>
+            <p class="act-card-desc">文化祭やイベントでゲーム・電子工作・AIなど部員の制作物を一般公開。来場者との交流も楽しみの一つです。</p>
+          </div>
+        </div>
+
+        <div class="act-card act-card--small" id="act-modeling">
+          <div class="act-card-img-wrap">
+            <img src="img/modeling.png" alt="モデリング" class="act-card-img" />
+            <div class="act-card-overlay"></div>
+          </div>
+          <div class="act-card-body">
+            <h3 class="act-card-title">モデリング</h3>
+            <p class="act-card-desc">BlenderなどのツールでキャラクターやCGの3Dモデルを制作。アート×テクノロジーの融合に挑戦しています。</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== LINKS ========== -->
+  <section id="links" class="section links-section">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-label">03 / Links</span>
+        <h2 class="section-title">リンク集</h2>
+        <div class="title-line"></div>
+      </div>
+      <div class="links-grid">
+
+        <a href="https://x.com/NNCT_Densan" target="_blank" rel="noopener" class="link-card" id="link-twitter">
+          <div class="link-card-icon">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <path
+                d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+            </svg>
+          </div>
+          <div class="link-card-body">
+            <h3>X (Twitter)</h3>
+            <p>活動の最新情報・日々の発信</p>
+          </div>
+          <div class="link-card-arrow">→</div>
+        </a>
+
+        <a href="https://note.com/nnct_densanki" target="_blank" rel="noopener" class="link-card" id="link-note">
+          <div class="link-card-icon">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <path
+                d="M22 2H2a1 1 0 0 0-1 1v18a1 1 0 0 0 1 1h20a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1zM7 17H5v-2h2v2zm0-4H5v-2h2v2zm0-4H5V7h2v2zm10 8H9v-2h8v2zm0-4H9v-2h8v2zm0-4H9V7h8v2z" />
+            </svg>
+          </div>
+          <div class="link-card-body">
+            <h3>note</h3>
+            <p>活動レポート・技術記事を発信中</p>
+          </div>
+          <div class="link-card-arrow">→</div>
+        </a>
+
+        <a href="https://line.me/ti/g2/GoUD2Rmw8wQddBMJjcnLhArLDu9LCSyXAowStw?utm_source=invitation&amp;utm_medium=link_copy&amp;utm_campaign=default"
+          target="_blank" rel="noopener" class="link-card" id="link-line">
+          <div class="link-card-icon">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <path
+                d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63h2.386c.346 0 .627.285.627.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.104.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63.346 0 .628.285.628.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.281.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 14.393 24 12.458 24 10.314" />
+            </svg>
+          </div>
+          <div class="link-card-body">
+            <h3>LINE オープンチャット</h3>
+            <p>体験入部の連絡はこちらから</p>
+          </div>
+          <div class="link-card-arrow">→</div>
+        </a>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== FOOTER ========== -->
+  <footer class="footer">
+    <div class="container footer-inner">
+      <div class="footer-logo">
+        <img src="img/colordensan.png" alt="電算機部" class="footer-logo-img" />
+      </div>
+      <p class="footer-copy">&copy; 2024 電算機部. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <script src="script.js?v=2"></script>
+</body>
+
+</html>
