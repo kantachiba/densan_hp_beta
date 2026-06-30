@@ -20,7 +20,7 @@
 
     /* ---- Lenis smooth scroll, wired into ScrollTrigger ---- */
     if (window.Lenis) {
-      var lenis = new window.Lenis({ duration: 1.1, smoothWheel: true, wheelMultiplier: 1 });
+      var lenis = new window.Lenis({ lerp: 0.12, smoothWheel: true, wheelMultiplier: 1 });
       lenis.on('scroll', window.ScrollTrigger.update);
       gsap.ticker.add(function (time) { lenis.raf(time * 1000); });
       gsap.ticker.lagSmoothing(0);
@@ -103,7 +103,7 @@
             trigger: img.closest('.act-card, .work-card') || img,
             start: 'top bottom',
             end: 'bottom top',
-            scrub: 1
+            scrub: 0.4
           }
         }
       );
@@ -133,7 +133,7 @@
             trigger: aboutCards,
             start: 'top 85%',
             end: 'bottom 15%',
-            scrub: 1,
+            scrub: 0.4,
             invalidateOnRefresh: true
           }
         }
