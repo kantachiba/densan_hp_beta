@@ -18,24 +18,9 @@
     // Hand all entrance motion over to GSAP; neutralise the IntersectionObserver reveal.
     document.documentElement.classList.add('gsap-active');
 
-    /* ---- Lenis smooth scroll, wired into ScrollTrigger ---- */
-    if (window.Lenis) {
-      var lenis = new window.Lenis({ lerp: 0.12, smoothWheel: true, wheelMultiplier: 1 });
-      lenis.on('scroll', window.ScrollTrigger.update);
-      gsap.ticker.add(function (time) { lenis.raf(time * 1000); });
-      gsap.ticker.lagSmoothing(0);
-
-      // keep in-page anchor links working with smooth scroll
-      document.querySelectorAll('a[href^="#"]').forEach(function (a) {
-        a.addEventListener('click', function (e) {
-          var id = a.getAttribute('href');
-          if (id.length > 1 && document.querySelector(id)) {
-            e.preventDefault();
-            lenis.scrollTo(id, { offset: -70 });
-          }
-        });
-      });
-    }
+    /* Native scrolling is used (no Lenis smooth-scroll) — feels immediate, no lag.
+       ScrollTrigger drives off the browser's own scroll; in-page anchors use the
+       CSS `scroll-behavior: smooth` + `scroll-padding-top` already in style.css. */
 
     /* ---- 1. Heading / text mask reveal ---- */
     function maskReveal(el, vars) {
