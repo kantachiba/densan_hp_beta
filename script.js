@@ -11,24 +11,6 @@ window.addEventListener('scroll', () => {
   }
 }, { passive: true });
 
-/* ========================================
-   MOBILE NAV TOGGLE
-   ======================================== */
-const navToggle = document.getElementById('nav-toggle');
-const navLinks = document.getElementById('nav-links');
-
-navToggle.addEventListener('click', () => {
-  navLinks.classList.toggle('open');
-  const isOpen = navLinks.classList.contains('open');
-  navToggle.setAttribute('aria-label', isOpen ? 'メニューを閉じる' : 'メニューを開く');
-});
-
-// Close on link click
-document.querySelectorAll('.nav-link').forEach(link => {
-  link.addEventListener('click', () => {
-    navLinks.classList.remove('open');
-  });
-});
 
 /* ========================================
    INTERSECTION OBSERVER (REVEAL)
@@ -111,34 +93,4 @@ const sectionObserver = new IntersectionObserver((entries) => {
 
 sections.forEach(sec => sectionObserver.observe(sec));
 
-/* ========================================
-   COUNTER ANIMATION (STATS)
-   ======================================== */
-function animateCounter(numEl, target, duration = 1400) {
-  // 数字部分のテキストノードだけ更新する（span.stat-unitを保持）
-  const unitEl = numEl.querySelector('.stat-unit');
-  const unitHTML = unitEl ? unitEl.outerHTML : '';
-  let startTime = null;
-  function step(timestamp) {
-    if (!startTime) startTime = timestamp;
-    const progress = Math.min((timestamp - startTime) / duration, 1);
-    const eased = 1 - Math.pow(1 - progress, 3);
-    numEl.innerHTML = Math.floor(eased * target) + unitHTML;
-    if (progress < 1) requestAnimationFrame(step);
-  }
-  requestAnimationFrame(step);
-}
-
-const statObserver = new IntersectionObserver((entries) => {
-  entries.forEach(entry => {
-    if (entry.isIntersecting) {
-      const numEl = entry.target.querySelector('.stat-num');
-      if (numEl) animateCounter(numEl, 40);
-      statObserver.unobserve(entry.target);
-    }
-  });
-}, { threshold: 0.5 });
-
-const statYears = document.querySelector('#stat-years');
-if (statYears) statObserver.observe(statYears);
 
