@@ -2,28 +2,40 @@
    DESIGN TOKENS
    ======================================== */
 :root {
-  --clr-bg: #080c12;
-  --clr-bg-2: #0d1420;
-  --clr-bg-card: #111824;
-  --clr-border: rgba(255, 255, 255, 0.07);
-  --clr-orange: #ff6b35;
-  --clr-orange-dim: #cc4d1e;
-  --clr-blue: #3fa9f5;
-  --clr-blue-dim: #1a5fa8;
-  --clr-accent: #ff6b35;
-  --clr-text: #e8edf3;
-  --clr-text-dim: #b0bcc8;
-  --clr-text-muted: #6b7c8e;
+  /* Base — near-black, shades stepped subtly */
+  --clr-bg: #0a0a0a;
+  --clr-bg-2: #0e0e0e;
+  --clr-bg-card: #141414;
+  --clr-border: rgba(245, 245, 240, 0.09);
+
+  /* Single accent (electric blue) + tints/shades derived from it */
+  --clr-accent: #2b5fff;
+  --clr-accent-light: #6a90ff;
+  --clr-accent-dim: #1c3fa8;
+  /* Legacy aliases kept so existing rules collapse to the single accent */
+  --clr-orange: var(--clr-accent);
+  --clr-orange-dim: var(--clr-accent-dim);
+  --clr-blue: var(--clr-accent-light);
+  --clr-blue-dim: var(--clr-accent-dim);
+
+  /* Type — warm off-white, never pure white */
+  --clr-text: #f5f5f0;
+  --clr-text-dim: #b7b7b0;
+  --clr-text-muted: #6f6f68;
+
   --font-body: 'Noto Sans JP', sans-serif;
-  --font-display: 'Space Grotesk', sans-serif;
+  --font-display: 'Archivo', 'Space Grotesk', sans-serif;
+  --font-jp-display: 'Zen Kaku Gothic New', sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
+
   --radius-sm: 6px;
   --radius-md: 12px;
   --radius-lg: 20px;
   --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-elastic: cubic-bezier(0.34, 1.56, 0.64, 1);
   --shadow-card: 0 4px 32px rgba(0, 0, 0, 0.5);
-  --shadow-glow-o: 0 0 24px rgba(255, 107, 53, 0.3);
-  --shadow-glow-b: 0 0 24px rgba(63, 169, 245, 0.3);
+  --shadow-glow-o: 0 0 24px rgba(43, 95, 255, 0.28);
+  --shadow-glow-b: 0 0 24px rgba(43, 95, 255, 0.28);
 }
 
 /* ========================================
@@ -753,9 +765,9 @@ ul {
    FOOTER
    ======================================== */
 .footer {
-  background: #ffffff;
-  border-top: 1px solid #e0e4e8;
-  padding: 40px 0;
+  background: var(--clr-bg);
+  border-top: 1px solid var(--clr-border);
+  padding: 56px 0;
 }
 
 .footer-inner {
@@ -779,7 +791,7 @@ ul {
 
 .footer-copy {
   font-size: 0.8rem;
-  color: #6b7c8e;
+  color: var(--clr-text-muted);
   font-family: var(--font-mono);
 }
 
