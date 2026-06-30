@@ -60,7 +60,8 @@ body {
   font-family: var(--font-body);
   font-size: 16px;
   line-height: 1.7;
-  overflow-x: hidden;
+  overflow-x: hidden; /* fallback for browsers without `clip` */
+  overflow-x: clip; /* avoids making <body> a scroll container (better with Lenis) */
 }
 
 img {
@@ -103,14 +104,14 @@ ul {
 }
 
 .section {
-  padding: 120px 0;
+  padding: 160px 0;
   position: relative;
 }
 
 .section-header {
   position: relative;
   text-align: center;
-  margin-bottom: 48px;
+  margin-bottom: 88px;
 }
 
 .section-label {
@@ -452,7 +453,7 @@ ul {
 .about-grid {
   display: flex;
   flex-direction: column;
-  gap: 40px;
+  gap: 72px;
 }
 
 .about-top {
@@ -460,16 +461,20 @@ ul {
 }
 
 .about-lead {
-  font-size: 2.0rem;
+  font-family: var(--font-jp-display);
+  font-size: clamp(2.2rem, 5vw, 3.4rem);
   font-weight: 500;
   color: var(--clr-text);
-  line-height: 1.8;
-  margin-bottom: 20px;
+  line-height: 1.5;
+  letter-spacing: 0.01em;
+  margin-bottom: 36px;
 }
 
 .about-body {
   color: var(--clr-text-dim);
-  line-height: 1.9;
+  line-height: 2.0;
+  letter-spacing: 0.02em;
+  max-width: 760px;
   margin-bottom: 40px;
 }
 
@@ -838,7 +843,7 @@ ul {
   }
 }
 
-/* Intersection Observer reveal */
+/* Intersection Observer reveal (fallback when GSAP is unavailable / reduced-motion) */
 .reveal {
   opacity: 0;
   transform: translateY(32px);
@@ -848,6 +853,28 @@ ul {
 .reveal.visible {
   opacity: 1;
   transform: translateY(0);
+}
+
+/* When GSAP drives the motion, let it own entrances — disable the CSS reveal. */
+.gsap-active .reveal {
+  opacity: 1;
+  transform: none;
+  transition: none;
+}
+
+/* Horizontal-flow track (applied by JS on desktop) */
+.about-cards.h-track {
+  display: flex;
+  flex-wrap: nowrap;
+  width: max-content;
+  grid-template-columns: none;
+  gap: 24px;
+  will-change: transform;
+}
+
+.about-cards.h-track .activity-card {
+  flex: 0 0 auto;
+  width: clamp(280px, 24vw, 340px);
 }
 
 .reveal-delay-1 {
@@ -943,5 +970,40 @@ ul {
 
   .work-title {
     font-size: 1.3rem;
+  }
+}
+
+/* ========================================
+   REDUCED MOTION
+   Honour the user's OS setting: motion.js already bails out of all
+   GSAP/Lenis motion; here we also neutralise the CSS-driven animation.
+   ======================================== */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+
+  html {
+    scroll-behavior: auto;
+  }
+
+  /* show static content without the entrance choreography */
+  .reveal {
+    opacity: 1;
+    transform: none;
+  }
+
+  .hero-bleed {
+    opacity: 1;
+    transform: translateX(-50%);
+  }
+
+  .hero-img {
+    animation: none;
+    transform: scale(1.06);
   }
 }
