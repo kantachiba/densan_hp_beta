@@ -598,6 +598,13 @@ ul {
   display: block;
 }
 
+/* Looping gameplay videos reuse the image classes; keep them covering & inert */
+video.act-card-img,
+video.work-thumb-img {
+  background: #000;
+  pointer-events: none;
+}
+
 .act-card-overlay {
   display: none;
 }
