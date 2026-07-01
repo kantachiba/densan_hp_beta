@@ -94,3 +94,24 @@ const sectionObserver = new IntersectionObserver((entries) => {
 sections.forEach(sec => sectionObserver.observe(sec));
 
 
+/* ========================================
+   VIDEO PLAYLIST (loop through clips forever)
+   ======================================== */
+document.querySelectorAll('video[data-playlist]').forEach(video => {
+  const clips = video.dataset.playlist.split(',').map(s => s.trim()).filter(Boolean);
+  if (!clips.length) return;
+
+  let index = 0;
+  const play = () => { video.play().catch(() => {}); };
+
+  video.src = clips[0];
+  play();
+
+  video.addEventListener('ended', () => {
+    index = (index + 1) % clips.length;
+    video.src = clips[index];
+    play();
+  });
+});
+
+

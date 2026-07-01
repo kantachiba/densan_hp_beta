@@ -171,8 +171,10 @@
         <!-- 上の行: ゲーム製作・動画編集 -->
         <div class="act-card" id="act-game">
           <div class="act-card-img-wrap">
-            <video class="act-card-img" src="img/videogame.mp4" poster="img/game.png"
-              autoplay loop muted playsinline preload="metadata" aria-label="部員制作ゲームのプレイ映像"></video>
+            <video class="act-card-img" poster="img/game.png"
+              autoplay muted playsinline preload="metadata"
+              data-playlist="img/videogame.mp4,img/videogame2.mp4"
+              aria-label="部員制作ゲームのプレイ映像"></video>
             <div class="act-card-overlay"></div>
           </div>
           <div class="act-card-body">
@@ -251,8 +253,7 @@
             </a>
           </div>
           <div class="work-thumb">
-            <video class="work-thumb-img" src="img/videogame2.mp4" poster="img/danmakufullcorse.png"
-              autoplay loop muted playsinline preload="metadata" aria-label="弾幕フルコースのプレイ映像"></video>
+            <img src="img/danmakufullcorse.png" alt="弾幕フルコース" class="work-thumb-img" />
           </div>
         </div>
       </div>
@@ -292,7 +293,7 @@
     </div>
   </footer>
 
-  <script src="script.js?v=2"></script>
+  <script src="script.js?v=3"></script>
 
   <!-- Signature motion (Hirao-style): GSAP + ScrollTrigger (native scrolling) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js" defer></script>
