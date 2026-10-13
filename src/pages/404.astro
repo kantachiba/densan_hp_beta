@@ -1,0 +1,23 @@
+---
+import Base from "../layouts/Base.astro";
+import Nav from "../components/Nav.astro";
+import Footer from "../components/Footer.astro";
+
+Astro.response.status = 404;
+---
+
+<Base title="ページが見つかりません | 長岡高専 電算機部" noindex>
+  <Nav home={false} />
+  <main class="relative z-[1] grid min-h-[70vh] place-items-center px-6 pt-24 text-center">
+    <div>
+      <p class="font-display text-[clamp(4rem,14vw,9rem)] font-semibold leading-none text-volt">404</p>
+      <p class="mt-6 font-jp text-lg text-fog">お探しのページは見つかりませんでした。</p>
+      <p class="mt-2 text-sm text-fog-mute">削除されたか、非公開になった可能性があります。</p>
+      <div class="mt-10 flex justify-center gap-6 font-mono text-xs uppercase tracking-[0.28em]">
+        <a href="/" class="text-fog-dim hover:text-volt-cyan">Top</a>
+        <a href="/news" class="text-fog-dim hover:text-volt-cyan">News</a>
+      </div>
+    </div>
+  </main>
+  <Footer />
+</Base>

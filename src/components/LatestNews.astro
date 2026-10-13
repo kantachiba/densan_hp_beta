@@ -1,0 +1,166 @@
+---
+/**
+ * News: 最新の公開記事 + ニュース一覧への導線。
+ * スマホ = 横並びのリスト4件 / タブレット = 2×2 の4件 / PC = 3列の3件。
+ * 公開記事が1件も無いときはセクションごと表示しない。
+ */
+import SectionHeader from "./SectionHeader.astro";
+import Icon from "./Icon.astro";
+import { listPublished } from "../lib/server/articles.ts";
+import { formatDate } from "../lib/format.ts";
+
+const { items } = listPublished({ page: 1, perPage: 4 });
+---
+
+{
+  items.length > 0 && (
+    <section id="news" class="section relative">
+      <SectionHeader en="News" ja="最新のニュース" />
+
+      <div class="container mt-14 md:mt-20">
+        <div class="grid gap-6 sm:grid-cols-2 sm:gap-10 lg:grid-cols-3">
+          {items.map((a, i) => (
+            <a href={`/news/${a.articleId}`} class:list={["latest-card group", i === 3 && "latest-card--extra"]} data-reveal>
+              <div class="latest-thumb">
+                {a.thumbnailUrl ? (
+                  <img
+                    src={a.thumbnailUrl}
+                    alt=""
+                    loading="lazy"
+                    decoding="async"
+                    style={`object-position: ${a.thumbnailFocusX}% ${a.thumbnailFocusY}%; transform-origin: ${a.thumbnailFocusX}% ${a.thumbnailFocusY}%`}
+                  />
+                ) : (
+                  <div class="latest-placeholder" aria-hidden="true">
+                    <span class="font-jp">{a.title}</span>
+                  </div>
+                )}
+              </div>
+              <div class="min-w-0">
+                <time datetime={a.publishedAt ?? undefined} class="block font-mono text-[0.68rem] tracking-[0.16em] text-fog-mute sm:mt-5 sm:text-[0.72rem]">
+                  {formatDate(a.publishedAt)}
+                </time>
+                <h3 class="latest-title mt-1.5 font-jp text-fog sm:mt-2">{a.title}</h3>
+              </div>
+            </a>
+          ))}
+        </div>
+
+        <div class="mt-14 flex justify-center" data-reveal>
+          <a
+            href="/news"
+            class="latest-more group inline-flex items-center gap-2 px-8 py-3 font-display text-[0.88rem] font-semibold tracking-wide text-ink"
+            data-magnetic
+          >
+            もっと見る
+            <Icon name="arrow" class="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
+          </a>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+<style>
+  /* スマホ: サムネ左・テキスト右の横並び */
+  .latest-card {
+    display: grid;
+    grid-template-columns: minmax(0, 42%) minmax(0, 1fr);
+    align-items: center;
+    gap: 1rem;
+  }
+
+  @media (min-width: 640px) {
+    .latest-card {
+      display: block;
+    }
+  }
+
+  /* PC は3列なので4件目を隠す */
+  @media (min-width: 1024px) {
+    .latest-card--extra {
+      display: none;
+    }
+  }
+
+  .latest-thumb {
+    aspect-ratio: 1.91 / 1;
+    overflow: hidden;
+    border: 3px solid var(--color-volt);
+    background: var(--color-ink-2);
+  }
+
+  .latest-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.8s var(--ease-out-expo);
+  }
+
+  .latest-card:hover .latest-thumb img {
+    transform: scale(1.05);
+  }
+
+  .latest-placeholder {
+    display: grid;
+    place-items: center;
+    height: 100%;
+    padding: 1.5rem;
+    background:
+      radial-gradient(120% 90% at 0% 0%, color-mix(in oklab, var(--color-volt) 45%, transparent), transparent 60%),
+      radial-gradient(100% 80% at 100% 100%, color-mix(in oklab, var(--color-volt-violet) 35%, transparent), transparent 60%),
+      var(--color-ink-3);
+  }
+
+  .latest-placeholder span {
+    font-size: 1.05rem;
+    font-weight: 700;
+    line-height: 1.6;
+    text-align: center;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .latest-title {
+    font-size: 1.15rem;
+    font-weight: 700;
+    line-height: 1.6;
+    letter-spacing: 0.03em;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    transition: color 0.2s;
+  }
+
+  .latest-card:hover .latest-title {
+    color: var(--color-volt-cyan);
+  }
+
+  @media (max-width: 639px) {
+    .latest-thumb {
+      border-width: 2px;
+    }
+
+    .latest-placeholder {
+      padding: 0.6rem;
+    }
+
+    .latest-placeholder span {
+      font-size: 0.72rem;
+      -webkit-line-clamp: 2;
+    }
+
+    .latest-title {
+      font-size: 0.95rem;
+      line-height: 1.55;
+      -webkit-line-clamp: 3;
+    }
+  }
+
+  .latest-more {
+    background: linear-gradient(100deg, var(--color-volt-cyan), var(--color-volt));
+  }
+</style>

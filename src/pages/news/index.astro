@@ -1,0 +1,158 @@
+---
+import Base from "../../layouts/Base.astro";
+import Nav from "../../components/Nav.astro";
+import Footer from "../../components/Footer.astro";
+import ArticleCard from "../../components/blog/ArticleCard.astro";
+import { listPublicCategories, listPublished } from "../../lib/server/articles.ts";
+
+const PER_PAGE = 12;
+
+const params = Astro.url.searchParams;
+const page = Math.max(1, Math.floor(Number(params.get("page")) || 1));
+const category = params.get("category")?.slice(0, 60) || null;
+const tag = params.get("tag")?.slice(0, 60) || null;
+
+const { items, total, totalPages } = listPublished({ page, perPage: PER_PAGE, category, tag });
+const categories = listPublicCategories();
+
+if (page > totalPages && total > 0) {
+  return Astro.redirect(pageHref(totalPages));
+}
+
+function pageHref(p: number, overrides: { category?: string | null; tag?: string | null } = {}): string {
+  const q = new URLSearchParams();
+  const c = "category" in overrides ? overrides.category : category;
+  const t = "tag" in overrides ? overrides.tag : tag;
+  if (c) q.set("category", c);
+  if (t) q.set("tag", t);
+  if (p > 1) q.set("page", String(p));
+  const s = q.toString();
+  return `/news${s ? `?${s}` : ""}`;
+}
+
+const filterLabel = tag ? `#${tag}` : category;
+const title = `${filterLabel ? `${filterLabel} の記事` : "ニュース一覧"}${page > 1 ? `（${page}ページ目）` : ""} | 長岡高専 電算機部`;
+
+// ページ番号（現在ページの前後2つ + 先頭/末尾）
+const pages: (number | "…")[] = [];
+for (let p = 1; p <= totalPages; p++) {
+  if (p === 1 || p === totalPages || Math.abs(p - page) <= 2) pages.push(p);
+  else if (pages.at(-1) !== "…") pages.push("…");
+}
+---
+
+<Base title={title} description="長岡高専 電算機部のニュース。大会の実績やイベント、活動記録をお届けします。">
+  <Nav home={false} />
+  <main class="relative z-[1] pb-32 pt-36 md:pt-44">
+    <div class="container">
+      <p class="font-mono text-[0.72rem] uppercase tracking-[0.34em] text-volt-cyan">+ News</p>
+      <h1 class="mt-3 font-jp text-[clamp(1.9rem,4.5vw,2.8rem)] font-black tracking-[0.06em] text-fog">
+        {filterLabel ? filterLabel : "ニュース"}
+      </h1>
+      {!filterLabel && <p class="mt-4 max-w-xl text-fog-dim">電算機部の実績・イベント・活動記録をお届けします。</p>}
+
+      {
+        categories.length > 0 && (
+          <nav class="mt-10 flex flex-wrap gap-2" aria-label="カテゴリ">
+            <a href={pageHref(1, { category: null, tag: null })} class:list={["chip", !category && !tag && "chip--on"]}>
+              すべて
+            </a>
+            {categories.map((c) => (
+              <a href={pageHref(1, { category: c.name, tag: null })} class:list={["chip", category === c.name && "chip--on"]}>
+                {c.name}
+                <span class="opacity-60">{c.count}</span>
+              </a>
+            ))}
+          </nav>
+        )
+      }
+
+      {
+        items.length === 0 ? (
+          <p class="mt-20 text-center text-fog-mute">
+            {filterLabel ? "該当する記事はまだありません。" : "まだ記事が公開されていません。"}
+          </p>
+        ) : (
+          <div class="mt-12 grid gap-x-8 gap-y-14 sm:grid-cols-2 lg:grid-cols-3">
+            {items.map((article) => (
+              <ArticleCard article={article} />
+            ))}
+          </div>
+        )
+      }
+
+      {
+        totalPages > 1 && (
+          <nav class="mt-20 flex items-center justify-center gap-1.5 font-mono text-sm" aria-label="ページ送り">
+            {page > 1 && (
+              <a href={pageHref(page - 1)} class="pager" rel="prev" aria-label="前のページ">←</a>
+            )}
+            {pages.map((p) =>
+              p === "…" ? (
+                <span class="px-2 text-fog-mute">…</span>
+              ) : (
+                <a href={pageHref(p)} class:list={["pager", p === page && "pager--on"]} aria-current={p === page ? "page" : undefined}>
+                  {p}
+                </a>
+              ),
+            )}
+            {page < totalPages && (
+              <a href={pageHref(page + 1)} class="pager" rel="next" aria-label="次のページ">→</a>
+            )}
+          </nav>
+        )
+      }
+    </div>
+  </main>
+  <Footer />
+</Base>
+
+<style>
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5em;
+    padding: 0.45rem 1rem;
+    border-radius: 999px;
+    border: 1px solid var(--color-line-strong);
+    font-size: 0.85rem;
+    color: var(--color-fog-dim);
+    transition: all 0.2s;
+  }
+
+  .chip:hover {
+    border-color: var(--color-volt-cyan);
+    color: var(--color-fog);
+  }
+
+  .chip--on {
+    background: var(--color-fog);
+    border-color: var(--color-fog);
+    color: var(--color-ink);
+  }
+
+  .chip--on:hover {
+    color: var(--color-ink);
+  }
+
+  .pager {
+    display: grid;
+    place-items: center;
+    min-width: 2.5rem;
+    height: 2.5rem;
+    padding-inline: 0.5rem;
+    border-radius: 999px;
+    color: var(--color-fog-dim);
+    transition: all 0.2s;
+  }
+
+  .pager:hover {
+    background: var(--color-surface);
+    color: var(--color-fog);
+  }
+
+  .pager--on {
+    background: var(--color-volt);
+    color: var(--color-fog);
+  }
+</style>

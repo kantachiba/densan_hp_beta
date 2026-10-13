@@ -1,0 +1,649 @@
+---
+/**
+ * note 風の記事エディタ（Tiptap）。挙動は src/scripts/editor.ts。
+ * 初期データは JSON として埋め込み、クライアント側で読み込む。
+ */
+import Base from "../../layouts/Base.astro";
+import "../../styles/admin.css";
+import "../../styles/article.css";
+import type { Article } from "../../lib/server/articles.ts";
+import { CATEGORY_MAX, TAG_MAX, TAGS_PER_ARTICLE, TITLE_MAX } from "../../lib/server/articles.ts";
+
+interface Props {
+  article: Article | null;
+  categories: string[];
+  tags: string[];
+}
+
+const { article, categories, tags } = Astro.props;
+const user = Astro.locals.user!;
+
+const initial = {
+  articleId: article?.articleId ?? null,
+  title: article?.title ?? "",
+  content: article?.content ?? null,
+  thumbnailUrl: article?.thumbnailUrl ?? null,
+  thumbnailFocusX: article?.thumbnailFocusX ?? 50,
+  thumbnailFocusY: article?.thumbnailFocusY ?? 50,
+  category: article?.category ?? "",
+  tags: article?.tags ?? [],
+  status: article?.status ?? "draft",
+  updatedAt: article?.updatedAt ?? null,
+  authorName: article?.authorName ?? user.displayName,
+  isOwn: !article || article.authorId === user.userId,
+  limits: { tagMax: TAG_MAX, tagsPerArticle: TAGS_PER_ARTICLE },
+};
+const initialJson = JSON.stringify(initial).replace(/</g, "\\u003c");
+---
+
+<Base title={`${article ? "記事を編集" : "新しい記事"} | 電算機部 CMS`} noindex decor={false}>
+  <script type="application/json" id="editor-data" set:html={initialJson} />
+
+  <header class="sticky top-0 z-40 border-b border-line bg-ink/90 backdrop-blur-xl">
+    <div class="mx-auto flex h-16 max-w-[1100px] items-center gap-3 px-4 md:px-6">
+      <a href="/admin/articles" class="adm-btn adm-btn--ghost adm-btn--sm !px-2" data-leave>← 記事一覧</a>
+      <span id="status-badge" class="adm-badge adm-badge--draft">下書き</span>
+      <span id="save-state" class="truncate text-xs text-fog-mute" aria-live="polite"></span>
+      <div class="ml-auto flex items-center gap-2">
+        <a id="preview-link" href="#" target="_blank" class="adm-btn adm-btn--sm adm-btn--ghost max-sm:hidden" hidden>プレビュー</a>
+        <button id="save-draft" type="button" class="adm-btn adm-btn--sm">下書き保存</button>
+        <button id="open-publish" type="button" class="adm-btn adm-btn--sm adm-btn--primary">公開に進む</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="pb-40 pt-10 md:pt-14">
+    <div class="mx-auto max-w-[720px] px-6">
+      {
+        !initial.isOwn && (
+          <p class="adm-alert adm-alert--ok mb-8">
+            Admin 権限で {initial.authorName} さんの記事を編集しています。
+          </p>
+        )
+      }
+
+      <!-- アイキャッチ画像 -->
+      <div id="thumb-zone" class="thumb-zone" data-empty>
+        <button id="thumb-add" type="button" class="thumb-add">
+          <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+            <rect x="3" y="5" width="18" height="14" rx="2" /><circle cx="8.5" cy="10" r="1.5" /><path d="m21 15-5-5L5 19" />
+          </svg>
+          見出し画像を設定（ドラッグ＆ドロップも可）
+        </button>
+        <div id="thumb-preview" class="thumb-preview">
+          <img id="thumb-img" alt="アイキャッチ画像" />
+          <p class="thumb-hint">ドラッグして表示位置を調整</p>
+          <div class="thumb-actions">
+            <button id="thumb-change" type="button" class="adm-btn adm-btn--sm bg-ink/80">変更</button>
+            <button id="thumb-remove" type="button" class="adm-btn adm-btn--sm bg-ink/80">削除</button>
+          </div>
+        </div>
+        <input id="thumb-input" type="file" accept="image/jpeg,image/png,image/webp,image/gif" hidden />
+      </div>
+
+      <textarea
+        id="title"
+        rows="1"
+        maxlength={TITLE_MAX}
+        placeholder="記事タイトル"
+        class="title-input mt-10 font-jp"
+        aria-label="記事タイトル"></textarea>
+
+      <div class="relative mt-8">
+        <div id="editor" class="article-body"></div>
+
+        <!-- 文字選択時のツールバー -->
+        <div id="bubble-menu" class="menu" role="toolbar" aria-label="書式">
+          <div class="menu-row" data-row="format">
+            <button type="button" data-cmd="h2" title="大見出し">見出し</button>
+            <button type="button" data-cmd="h3" title="小見出し">小見出し</button>
+            <span class="menu-sep"></span>
+            <button type="button" data-cmd="bold" title="太字 (Ctrl+B)"><b>B</b></button>
+            <button type="button" data-cmd="italic" title="斜体 (Ctrl+I)"><i>I</i></button>
+            <button type="button" data-cmd="strike" title="取り消し線"><s>S</s></button>
+            <button type="button" data-cmd="code" title="インラインコード" class="font-mono">&lt;/&gt;</button>
+            <span class="menu-sep"></span>
+            <button type="button" data-cmd="link" title="リンク">リンク</button>
+            <button type="button" data-cmd="quote" title="引用">引用</button>
+          </div>
+          <form class="menu-row" data-row="link" hidden>
+            <input name="href" type="url" placeholder="https://..." class="link-input" aria-label="リンクURL" />
+            <button type="submit">適用</button>
+            <button type="button" data-cmd="unlink">解除</button>
+          </form>
+        </div>
+
+        <!-- 画像を選んだときのツールバー -->
+        <div id="image-menu" class="menu" role="toolbar" aria-label="画像の調整">
+          <div class="menu-row">
+            <span class="menu-label">配置</span>
+            <button type="button" data-img-set="align:left" title="左寄せ">左</button>
+            <button type="button" data-img-set="align:center" title="中央">中央</button>
+            <button type="button" data-img-set="align:right" title="右寄せ">右</button>
+            <span class="menu-sep"></span>
+            <span class="menu-label">幅</span>
+            <input id="img-width" type="range" step="5" class="img-range" aria-label="画像の幅" />
+            <span id="img-width-value" class="menu-value">100%</span>
+          </div>
+          <div class="menu-row">
+            <span class="menu-label">トリミング</span>
+            <button type="button" data-img-set="ratio:" title="元の縦横比">原寸</button>
+            <button type="button" data-img-set="ratio:16:9">16:9</button>
+            <button type="button" data-img-set="ratio:3:2">3:2</button>
+            <button type="button" data-img-set="ratio:4:3">4:3</button>
+            <button type="button" data-img-set="ratio:1:1">1:1</button>
+            <button type="button" data-img-set="ratio:3:4">3:4</button>
+            <button type="button" data-img-set="ratio:9:16">9:16</button>
+            <span class="menu-sep"></span>
+            <button type="button" data-img-cmd="reset" title="幅・配置・トリミングを初期化">リセット</button>
+            <button type="button" data-img-cmd="remove" title="画像を削除">削除</button>
+          </div>
+          <div class="menu-row" id="img-zoom-row" hidden>
+            <span class="menu-label">拡大</span>
+            <input id="img-zoom" type="range" step="10" class="img-range" aria-label="トリミングの拡大" />
+            <span id="img-zoom-value" class="menu-value">100%</span>
+          </div>
+          <p id="img-crop-hint" class="menu-hint" hidden>ドラッグで位置、ホイールで拡大できます</p>
+        </div>
+
+        <!-- 空行に出る「＋」メニュー -->
+        <div id="floating-menu" class="floating">
+          <button type="button" id="plus" class="plus" aria-label="ブロックを追加" aria-expanded="false">＋</button>
+          <div id="block-menu" class="menu menu-row" hidden>
+            <button type="button" data-block="image">画像</button>
+            <button type="button" data-block="h2">見出し</button>
+            <button type="button" data-block="h3">小見出し</button>
+            <button type="button" data-block="bullet">箇条書き</button>
+            <button type="button" data-block="ordered">番号付き</button>
+            <button type="button" data-block="quote">引用</button>
+            <button type="button" data-block="code">コード</button>
+            <button type="button" data-block="hr">区切り線</button>
+          </div>
+        </div>
+        <input id="image-input" type="file" accept="image/jpeg,image/png,image/webp,image/gif" multiple hidden />
+      </div>
+
+      <p class="mt-16 text-xs leading-relaxed text-fog-mute">
+        ヒント: 行頭で <code>##</code> + スペースで見出し、<code>-</code> で箇条書き、<code>&gt;</code> で引用、<code>```</code> でコードブロック。
+        Ctrl/⌘ + S で保存。下書きは自動保存されます。
+      </p>
+    </div>
+  </main>
+
+  <div id="drop-overlay" class="drop-overlay" hidden>
+    <p>画像をドロップして挿入</p>
+  </div>
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+  <!-- 公開設定 -->
+  <dialog id="publish-dialog" class="dialog">
+    <div data-step="settings">
+      <h2 class="font-jp text-lg font-bold">公開設定</h2>
+      <div class="mt-6 space-y-6">
+        <label class="block">
+          <span class="adm-label">カテゴリ</span>
+          <input id="category" list="category-list" maxlength={CATEGORY_MAX} class="adm-field" placeholder="例: 活動報告 / 技術 / イベント" />
+          <datalist id="category-list">
+            {categories.map((c) => <option value={c} />)}
+          </datalist>
+        </label>
+        <div>
+          <span class="adm-label">タグ（Enter または読点で追加・最大{TAGS_PER_ARTICLE}個）</span>
+          <div id="tag-box" class="tag-box">
+            <ul id="tag-list" class="contents"></ul>
+            <input id="tag-input" list="tag-list-options" maxlength={TAG_MAX} class="tag-input" placeholder="タグを入力" />
+          </div>
+          <datalist id="tag-list-options">
+            {tags.map((t) => <option value={t} />)}
+          </datalist>
+        </div>
+        <p id="publish-error" class="adm-alert adm-alert--error" hidden></p>
+      </div>
+      <div class="mt-8 flex flex-wrap items-center justify-end gap-2">
+        <button type="button" class="adm-btn adm-btn--ghost mr-auto" data-close>閉じる</button>
+        <button type="button" id="unpublish" class="adm-btn" hidden>非公開（下書き）に戻す</button>
+        <button type="button" id="dialog-draft" class="adm-btn">下書き保存</button>
+        <button type="button" id="publish" class="adm-btn adm-btn--primary">公開する</button>
+      </div>
+    </div>
+    <div data-step="done" hidden class="text-center">
+      <p class="font-mono text-[0.7rem] uppercase tracking-[0.3em] text-volt-cyan">Published</p>
+      <h2 class="mt-3 font-jp text-xl font-bold">記事を公開しました</h2>
+      <div class="mt-8 flex flex-wrap justify-center gap-2">
+        <a id="done-view" href="#" target="_blank" class="adm-btn adm-btn--primary">記事を見る</a>
+        <a id="done-share" href="#" target="_blank" rel="noopener noreferrer" class="adm-btn">X でシェア</a>
+        <button type="button" class="adm-btn adm-btn--ghost" data-close>編集を続ける</button>
+      </div>
+    </div>
+  </dialog>
+</Base>
+
+<script>
+  import { initEditor } from "../../scripts/editor";
+  initEditor();
+</script>
+
+<style is:global>
+  /* ---- アイキャッチ ---- */
+  .thumb-zone {
+    position: relative;
+  }
+
+  .thumb-add {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    width: 100%;
+    padding: 1.1rem 1.25rem;
+    border: 1px dashed var(--color-line-strong);
+    border-radius: 8px;
+    color: var(--color-fog-mute);
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .thumb-add:hover,
+  .thumb-zone.is-drag .thumb-add {
+    border-color: var(--color-volt-cyan);
+    color: var(--color-fog);
+    background: rgb(55 225 255 / 0.05);
+  }
+
+  .thumb-preview {
+    position: relative;
+    display: none;
+  }
+
+  .thumb-zone:not([data-empty]) .thumb-add {
+    display: none;
+  }
+
+  .thumb-zone:not([data-empty]) .thumb-preview {
+    display: block;
+  }
+
+  .thumb-preview img {
+    width: 100%;
+    aspect-ratio: 1.91 / 1;
+    object-fit: cover;
+    border-radius: 6px;
+    border: 1px solid var(--color-line);
+    cursor: grab;
+    user-select: none;
+  }
+
+  .thumb-zone.is-panning img {
+    cursor: grabbing;
+  }
+
+  .thumb-hint {
+    position: absolute;
+    left: 0.75rem;
+    bottom: 0.75rem;
+    margin: 0;
+    padding: 0.25rem 0.55rem;
+    border-radius: 999px;
+    background: rgb(10 10 13 / 0.7);
+    color: var(--color-fog);
+    font-size: 0.72rem;
+    pointer-events: none;
+  }
+
+  #editor .a-fig.ProseMirror-selectednode .a-fig__frame[data-cropped]::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image:
+      linear-gradient(to right, rgb(255 255 255 / 0.28) 1px, transparent 1px),
+      linear-gradient(to bottom, rgb(255 255 255 / 0.28) 1px, transparent 1px);
+    background-size: calc(100% / 3) calc(100% / 3);
+  }
+
+  .thumb-actions {
+    position: absolute;
+    right: 0.75rem;
+    bottom: 0.75rem;
+    display: flex;
+    gap: 0.4rem;
+  }
+
+  .thumb-zone.is-busy {
+    opacity: 0.55;
+    pointer-events: none;
+  }
+
+  /* ---- タイトル ---- */
+  .title-input {
+    display: block;
+    width: 100%;
+    resize: none;
+    overflow: hidden;
+    background: transparent;
+    border: 0;
+    outline: none;
+    color: var(--color-fog);
+    font-size: clamp(1.7rem, 4.2vw, 2.4rem);
+    font-weight: 700;
+    line-height: 1.5;
+    letter-spacing: 0.04em;
+  }
+
+  .title-input::placeholder {
+    color: var(--color-fog-mute);
+    opacity: 0.6;
+  }
+
+  /* ---- 本文エディタ ---- */
+  #editor .ProseMirror {
+    min-height: 50vh;
+    outline: none;
+  }
+
+  #editor .ProseMirror > * + * {
+    margin-top: 1.75em;
+  }
+
+  #editor .ProseMirror > :first-child {
+    margin-top: 0;
+  }
+
+  #editor .ProseMirror h2 + *,
+  #editor .ProseMirror h3 + * {
+    margin-top: 1.1em;
+  }
+
+  #editor p.is-empty::before {
+    content: attr(data-placeholder);
+    float: left;
+    height: 0;
+    pointer-events: none;
+    color: var(--color-fog-mute);
+    opacity: 0.7;
+  }
+
+  #editor .a-fig {
+    cursor: pointer;
+    transition: outline-color 0.15s;
+    outline: 3px solid transparent;
+    outline-offset: 3px;
+  }
+
+  #editor .a-fig.ProseMirror-selectednode {
+    outline-color: var(--color-volt-cyan);
+  }
+
+  /* トリミング中はドラッグで表示位置を調整できる */
+  #editor .a-fig__frame[data-cropped] {
+    cursor: grab;
+  }
+
+  #editor .a-fig.is-panning .a-fig__frame {
+    cursor: grabbing;
+  }
+
+  #editor .a-fig.is-panning img {
+    user-select: none;
+  }
+
+  #editor .ProseMirror-gapcursor::after {
+    border-top-color: var(--color-fog);
+  }
+
+  /* ---- メニュー（表示/位置は Tiptap がインラインスタイルで制御） ---- */
+  #bubble-menu,
+  #floating-menu,
+  #image-menu {
+    position: absolute;
+    top: 0;
+    left: 0;
+    visibility: hidden;
+  }
+
+  .menu {
+    z-index: 30;
+    padding: 0.3rem;
+    border-radius: 10px;
+    border: 1px solid var(--color-line-strong);
+    background: #16161f;
+    box-shadow: 0 12px 32px rgb(0 0 0 / 0.5);
+  }
+
+  .menu-row {
+    display: flex;
+    align-items: center;
+    gap: 0.1rem;
+  }
+
+  .menu-row[hidden],
+  .menu[hidden] {
+    display: none;
+  }
+
+  .menu button {
+    padding: 0.4rem 0.65rem;
+    border-radius: 6px;
+    font-size: 0.82rem;
+    color: var(--color-fog-dim);
+    white-space: nowrap;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .menu button:hover {
+    background: var(--color-surface);
+    color: var(--color-fog);
+  }
+
+  .menu button.is-active {
+    color: var(--color-volt-cyan);
+    background: rgb(55 225 255 / 0.1);
+  }
+
+  .menu-sep {
+    width: 1px;
+    height: 1.1rem;
+    margin-inline: 0.2rem;
+    background: var(--color-line-strong);
+  }
+
+  /* ---- 画像ツールバー ---- */
+  #image-menu {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    max-width: min(92vw, 560px);
+  }
+
+  #image-menu .menu-row {
+    flex-wrap: wrap;
+  }
+
+  .menu-label {
+    padding-inline: 0.35rem;
+    color: var(--color-fog-mute);
+    font-size: 0.72rem;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+  }
+
+  .menu-value {
+    min-width: 2.8rem;
+    color: var(--color-fog-dim);
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    text-align: right;
+  }
+
+  .img-range {
+    width: 7rem;
+    accent-color: var(--color-volt-cyan);
+    cursor: pointer;
+  }
+
+  .menu-hint {
+    padding: 0.1rem 0.45rem 0.35rem;
+    color: var(--color-fog-mute);
+    font-size: 0.72rem;
+  }
+
+  .menu-hint[hidden] {
+    display: none;
+  }
+
+  .link-input {
+    width: min(60vw, 280px);
+    padding: 0.35rem 0.6rem;
+    border-radius: 6px;
+    background: var(--color-ink);
+    border: 1px solid var(--color-line-strong);
+    color: var(--color-fog);
+    font-size: 0.85rem;
+    outline: none;
+  }
+
+  .floating {
+    z-index: 30;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .plus {
+    display: grid;
+    place-items: center;
+    width: 2rem;
+    height: 2rem;
+    flex-shrink: 0;
+    border-radius: 999px;
+    border: 1px solid var(--color-line-strong);
+    background: var(--color-ink);
+    color: var(--color-fog-dim);
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.2s var(--ease-out-expo);
+  }
+
+  .plus:hover,
+  .plus[aria-expanded="true"] {
+    color: var(--color-fog);
+    border-color: var(--color-fog-dim);
+  }
+
+  .plus[aria-expanded="true"] {
+    transform: rotate(45deg);
+  }
+
+  #block-menu {
+    position: absolute;
+    top: 50%;
+    left: calc(100% + 8px);
+    transform: translateY(-50%);
+    width: max-content;
+    max-width: min(78vw, 600px);
+    flex-wrap: wrap;
+  }
+
+  /* ---- ドロップ・トースト ---- */
+  .drop-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 70;
+    display: grid;
+    place-items: center;
+    pointer-events: none;
+    background: rgb(10 10 13 / 0.6);
+    border: 3px dashed var(--color-volt-cyan);
+    color: var(--color-fog);
+    font-size: 1.1rem;
+  }
+
+  .drop-overlay[hidden] {
+    display: none;
+  }
+
+  .toast {
+    position: fixed;
+    left: 50%;
+    bottom: 1.5rem;
+    z-index: 80;
+    transform: translateX(-50%);
+    padding: 0.7rem 1.2rem;
+    border-radius: 999px;
+    background: var(--color-fog);
+    color: var(--color-ink);
+    font-size: 0.875rem;
+    box-shadow: 0 10px 30px rgb(0 0 0 / 0.4);
+  }
+
+  .toast.is-error {
+    background: #ffb4b4;
+  }
+
+  /* ---- 公開ダイアログ ---- */
+  .dialog {
+    width: min(92vw, 520px);
+    margin: auto;
+    padding: 2rem;
+    border-radius: 14px;
+    border: 1px solid var(--color-line-strong);
+    background: var(--color-ink-2);
+    color: var(--color-fog);
+  }
+
+  .dialog::backdrop {
+    background: rgb(0 0 0 / 0.6);
+    backdrop-filter: blur(4px);
+  }
+
+  .tag-box {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    padding: 0.5rem;
+    border-radius: 8px;
+    border: 1px solid var(--color-line-strong);
+    background: var(--color-ink);
+  }
+
+  .tag-box:focus-within {
+    border-color: var(--color-volt-cyan);
+  }
+
+  .tag-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.25rem 0.4rem 0.25rem 0.75rem;
+    border-radius: 999px;
+    background: var(--color-surface);
+    font-size: 0.82rem;
+  }
+
+  .tag-chip button {
+    display: grid;
+    place-items: center;
+    width: 1.2rem;
+    height: 1.2rem;
+    border-radius: 999px;
+    color: var(--color-fog-mute);
+    cursor: pointer;
+  }
+
+  .tag-chip button:hover {
+    background: var(--color-line-strong);
+    color: var(--color-fog);
+  }
+
+  .tag-input {
+    flex: 1;
+    min-width: 8rem;
+    padding: 0.25rem 0.4rem;
+    background: transparent;
+    border: 0;
+    outline: none;
+    color: var(--color-fog);
+    font-size: 0.9rem;
+  }
+</style>

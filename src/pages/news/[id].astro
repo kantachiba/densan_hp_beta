@@ -1,0 +1,41 @@
+---
+import Base from "../../layouts/Base.astro";
+import Nav from "../../components/Nav.astro";
+import Footer from "../../components/Footer.astro";
+import ArticleView from "../../components/blog/ArticleView.astro";
+import { getPublishedArticle } from "../../lib/server/articles.ts";
+import { firstImage } from "../../lib/server/content.ts";
+
+const id = Astro.params.id ?? "";
+const article = /^[a-f0-9]{12}$/.test(id) ? getPublishedArticle(id) : null;
+
+if (!article) {
+  return Astro.rewrite("/404");
+}
+
+const site = Astro.site ?? Astro.url;
+const shareUrl = new URL(`/news/${article.articleId}`, site).href;
+const ogImage = article.thumbnailUrl ?? firstImage(article.content);
+---
+
+<Base
+  title={`${article.title} | 長岡高専 電算機部`}
+  description={article.excerpt || article.title}
+  image={ogImage}
+  type="article"
+  publishedTime={article.publishedAt}
+  modifiedTime={article.updatedAt}
+  author={article.authorName}
+  tags={article.tags}
+>
+  <Nav home={false} />
+  <main class="relative z-[1] pb-32 pt-36 md:pt-44">
+    <ArticleView article={article} shareUrl={shareUrl} />
+    <div class="mt-20 text-center">
+      <a href="/news" class="font-mono text-xs uppercase tracking-[0.28em] text-fog-dim hover:text-volt-cyan">
+        ← ニュース一覧へ
+      </a>
+    </div>
+  </main>
+  <Footer />
+</Base>

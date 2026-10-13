@@ -1,0 +1,134 @@
+---
+/**
+ * メンバーページ: アイコン（縦長）+ 名前 + プロフィール + リンクを1行に2人ずつ。
+ * メンバーは管理画面（/admin/members）で登録したものを DB から読む。
+ */
+import Base from "../layouts/Base.astro";
+import Nav from "../components/Nav.astro";
+import Footer from "../components/Footer.astro";
+import MemberPortrait from "../components/MemberPortrait.astro";
+import SocialIcon from "../components/SocialIcon.astro";
+import Icon from "../components/Icon.astro";
+import { listMembers } from "../lib/server/members.ts";
+
+const members = listMembers();
+---
+
+<Base title="メンバー | 長岡高専 電算機部" description="長岡高専 電算機部のメンバー紹介。">
+  <Nav home={false} />
+  <main class="relative z-[1] pb-32 pt-36 md:pt-44">
+    <div class="container">
+      <p class="font-mono text-[0.72rem] uppercase tracking-[0.34em] text-volt-cyan">+ Members</p>
+      <h1 class="mt-3 font-jp text-[clamp(1.9rem,4.5vw,2.8rem)] font-black tracking-[0.06em] text-fog">メンバー</h1>
+      <p class="mt-4 max-w-xl text-fog-dim">電算機部で活動しているメンバーを紹介します。</p>
+
+      {members.length === 0 && <p class="mt-20 text-center text-fog-mute">メンバーはまだ登録されていません。</p>}
+
+      <ul class="mt-14 grid gap-x-12 gap-y-12 md:grid-cols-2 md:gap-y-16">
+        {
+          members.map((member) => (
+            <li id={member.memberId} class="member-card">
+              <div class="member-card-portrait">
+                <MemberPortrait imageUrl={member.imageUrl} />
+              </div>
+              <div class="min-w-0">
+                {member.role && <p class="font-mono text-[0.68rem] tracking-[0.16em] text-volt-cyan">{member.role}</p>}
+                <h2 class="member-card-name mt-2 font-jp text-fog">{member.name}</h2>
+                {member.profile && (
+                  <p class="mt-3 whitespace-pre-line text-[0.88rem] leading-[1.9] text-fog-dim">{member.profile}</p>
+                )}
+                {member.links.length > 0 && (
+                  <ul class="mt-4 flex flex-wrap gap-2">
+                    {member.links.map((link) => (
+                      <li>
+                        {link.type === "other" ? (
+                          <a href={link.url} target="_blank" rel="noopener noreferrer" class="member-link member-link--text">
+                            <Icon name="link" class="h-3.5 w-3.5 shrink-0" />
+                            <span class="truncate">{link.label}</span>
+                          </a>
+                        ) : (
+                          <a
+                            href={link.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="member-link member-link--icon"
+                            aria-label={`${member.name} の ${link.label}`}
+                            title={link.label}
+                          >
+                            <SocialIcon id={link.type} class="h-4 w-4" />
+                          </a>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+  </main>
+  <Footer />
+</Base>
+
+<style>
+  .member-card {
+    display: grid;
+    grid-template-columns: minmax(0, 34%) minmax(0, 1fr);
+    align-items: start;
+    gap: clamp(1rem, 2.4vw, 1.75rem);
+    scroll-margin-top: 100px;
+  }
+
+  .member-card-portrait {
+    max-width: 190px;
+  }
+
+  .member-card-name {
+    font-size: clamp(1.15rem, 2vw, 1.4rem);
+    font-weight: 900;
+    letter-spacing: 0.04em;
+    line-height: 1.4;
+  }
+
+  /* トップのマーキーから #id で飛んできたメンバーを示す */
+  .member-card:target .member-card-name {
+    color: var(--color-volt-cyan);
+  }
+
+  .member-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    height: 36px;
+    max-width: 100%;
+    border: 1px solid var(--color-line-strong);
+    border-radius: var(--radius-card);
+    color: var(--color-fog-dim);
+    transition:
+      border-color 0.25s var(--ease-out-expo),
+      color 0.25s var(--ease-out-expo);
+  }
+
+  .member-link--icon {
+    width: 36px;
+  }
+
+  .member-link--text {
+    padding: 0 0.75rem;
+    font-size: 0.78rem;
+    letter-spacing: 0.04em;
+  }
+
+  .member-link:hover {
+    border-color: var(--color-volt-cyan);
+    color: var(--color-volt-cyan);
+  }
+
+  .member-link:focus-visible {
+    outline: 2px solid var(--color-volt-cyan);
+    outline-offset: 3px;
+  }
+</style>

@@ -1,0 +1,12 @@
+---
+import ArticleEditor from "../../../../components/admin/ArticleEditor.astro";
+import { canEdit, getArticle, listKnownCategories, listKnownTags } from "../../../../lib/server/articles.ts";
+
+const article = getArticle(Astro.params.id ?? "");
+if (!article) return Astro.rewrite("/404");
+if (!canEdit(Astro.locals.user!, article)) {
+  return new Response("この記事を編集する権限がありません", { status: 403 });
+}
+---
+
+<ArticleEditor article={article} categories={listKnownCategories()} tags={listKnownTags()} />

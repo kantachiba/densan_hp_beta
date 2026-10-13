@@ -1,0 +1,143 @@
+---
+/**
+ * Members（トップページ）: メンバーが横に自動で流れ続けるマーキー + メンバーページへの導線。
+ * メンバーは管理画面（/admin/members）で登録したものを DB から読む。
+ * 画面幅より列が短いと途切れるため、MIN_TILES 枚以上になるまで並びを繰り返し、
+ * 同じ列を2本つなげて -50% まで流すことで継ぎ目なくループさせる。
+ * ホバー / フォーカス中は停止。reduced-motion 時は手動の横スクロールにフォールバック。
+ */
+import SectionHeader from "./SectionHeader.astro";
+import MemberPortrait from "./MemberPortrait.astro";
+import Icon from "./Icon.astro";
+import { listMembers } from "../lib/server/members.ts";
+
+const members = listMembers();
+
+const MIN_TILES = 16;
+const SECONDS_PER_TILE = 5;
+
+const repeat = Math.max(1, Math.ceil(MIN_TILES / Math.max(1, members.length)));
+const tiles = Array.from({ length: repeat }, () => members).flat();
+---
+
+{
+  members.length > 0 && (
+    <section id="members" class="section relative">
+      <SectionHeader en="Members" ja="メンバー" />
+
+      <div class="member-marquee mt-14 md:mt-20" style={`--dur: ${tiles.length * SECONDS_PER_TILE}s`} data-reveal>
+        <div class="member-track">
+          {[0, 1].map((group) => (
+            <ul class="member-group" aria-hidden={group === 1 ? "true" : undefined}>
+              {tiles.map((member, i) => {
+                const duplicate = group === 1 || i >= members.length;
+                return (
+                  <li class="member-tile" aria-hidden={duplicate && group === 0 ? "true" : undefined}>
+                    <a href={`/members#${member.memberId}`} class="member-link" tabindex={duplicate ? -1 : undefined}>
+                      <MemberPortrait imageUrl={member.imageUrl} />
+                      <span class="member-name font-jp">{member.name}</span>
+                      <span class="member-role font-mono">{member.role}</span>
+                    </a>
+                  </li>
+                );
+              })}
+            </ul>
+          ))}
+        </div>
+      </div>
+
+      <div class="container mt-14 flex justify-center" data-reveal>
+        <a href="/members" class="btn-volt font-jp max-md:w-full">
+          <span>メンバーを見る</span>
+          <Icon name="arrow" class="h-4 w-4 shrink-0" />
+        </a>
+      </div>
+    </section>
+  )
+}
+
+<style>
+  .member-marquee {
+    --gap: clamp(1rem, 2.4vw, 1.75rem);
+    overflow: hidden;
+    mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+  }
+
+  .member-track {
+    display: flex;
+    width: max-content;
+    animation: member-scroll var(--dur) linear infinite;
+  }
+
+  .member-marquee:hover .member-track,
+  .member-marquee:focus-within .member-track {
+    animation-play-state: paused;
+  }
+
+  @keyframes member-scroll {
+    to {
+      transform: translateX(-50%);
+    }
+  }
+
+  .member-group {
+    display: flex;
+    gap: var(--gap);
+    padding-right: var(--gap);
+  }
+
+  .member-tile {
+    width: clamp(150px, 42vw, 210px);
+    flex: none;
+  }
+
+  .member-link {
+    display: block;
+  }
+
+  .member-name {
+    display: block;
+    margin-top: 0.9rem;
+    font-size: 1rem;
+    font-weight: 900;
+    letter-spacing: 0.04em;
+    line-height: 1.4;
+    color: var(--color-fog);
+    transition: color 0.25s var(--ease-out-expo);
+  }
+
+  .member-link:hover .member-name {
+    color: var(--color-volt-cyan);
+  }
+
+  .member-link:focus-visible {
+    outline: 2px solid var(--color-volt-cyan);
+    outline-offset: 4px;
+  }
+
+  .member-role {
+    display: block;
+    margin-top: 0.3rem;
+    font-size: 0.68rem;
+    letter-spacing: 0.14em;
+    color: var(--color-fog-mute);
+  }
+
+  /* 動きを減らす設定では自動で流さず、手で横スクロールできる1列にする */
+  @media (prefers-reduced-motion: reduce) {
+    .member-marquee {
+      overflow-x: auto;
+      mask-image: none;
+      padding-inline: 24px;
+    }
+
+    .member-track {
+      animation: none;
+    }
+
+    .member-group[aria-hidden="true"],
+    .member-tile[aria-hidden="true"] {
+      display: none;
+    }
+  }
+</style>

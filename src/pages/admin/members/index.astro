@@ -1,0 +1,100 @@
+---
+import Admin from "../../../layouts/Admin.astro";
+import { deleteMember, getMember, listMembers, moveMember } from "../../../lib/server/members.ts";
+
+let message: { type: "ok" | "error"; text: string } | null = null;
+
+if (Astro.request.method === "POST") {
+  const form = await Astro.request.formData();
+  const action = String(form.get("_action") ?? "");
+  const member = getMember(String(form.get("memberId") ?? ""));
+  if (!member) {
+    message = { type: "error", text: "メンバーが見つかりません" };
+  } else if (action === "delete") {
+    deleteMember(member.memberId);
+    message = { type: "ok", text: `${member.name} さんを削除しました` };
+  } else if (action === "up" || action === "down") {
+    moveMember(member.memberId, action === "up" ? -1 : 1);
+  } else {
+    message = { type: "error", text: "不正な操作です" };
+  }
+  if (message?.type === "error") Astro.response.status = 400;
+} else if (Astro.url.searchParams.has("saved")) {
+  message = { type: "ok", text: "メンバーを保存しました" };
+}
+
+const members = listMembers();
+---
+
+<Admin title="メンバー">
+  <div class="flex flex-wrap items-end justify-between gap-4">
+    <div>
+      <h1 class="font-jp text-2xl font-bold tracking-[0.06em]">メンバー</h1>
+      <p class="mt-2 text-sm text-fog-mute">
+        トップページのメンバー欄とメンバーページに、この並び順で表示されます。
+      </p>
+    </div>
+    <a href="/admin/members/new" class="adm-btn adm-btn--primary">＋ メンバーを追加</a>
+  </div>
+
+  {message && <p role="status" class:list={["adm-alert mt-8", `adm-alert--${message.type}`]}>{message.text}</p>}
+
+  {
+    members.length === 0 ? (
+      <div class="adm-card mt-8 grid place-items-center px-6 py-20 text-center">
+        <p class="text-fog-dim">メンバーはまだ登録されていません。</p>
+        <a href="/admin/members/new" class="adm-btn mt-6">最初のメンバーを追加</a>
+      </div>
+    ) : (
+      <ul class="adm-card mt-8 divide-y divide-line">
+        {members.map((m, i) => (
+          <li class="flex items-center gap-4 px-4 py-4 md:gap-5 md:px-5">
+            <a href={`/admin/members/${m.memberId}`} class="h-16 w-12 shrink-0 overflow-hidden rounded bg-surface">
+              {m.imageUrl && <img src={m.imageUrl} alt="" class="h-full w-full object-cover" loading="lazy" />}
+            </a>
+            <div class="min-w-0 flex-1">
+              <a href={`/admin/members/${m.memberId}`} class="block truncate font-medium text-fog hover:text-volt-cyan">
+                {m.name}
+              </a>
+              <p class="mt-1 truncate text-xs text-fog-mute">
+                {m.role || "役職・学年なし"}
+                <span class="ml-3">リンク {m.links.length}件</span>
+              </p>
+            </div>
+            <div class="flex shrink-0 items-center gap-1.5">
+              <form method="post">
+                <input type="hidden" name="memberId" value={m.memberId} />
+                <button name="_action" value="up" class="adm-btn adm-btn--sm" disabled={i === 0} aria-label={`${m.name} を1つ前へ`}>
+                  ↑
+                </button>
+                <button
+                  name="_action"
+                  value="down"
+                  class="adm-btn adm-btn--sm"
+                  disabled={i === members.length - 1}
+                  aria-label={`${m.name} を1つ後ろへ`}
+                >
+                  ↓
+                </button>
+              </form>
+              <a href={`/admin/members/${m.memberId}`} class="adm-btn adm-btn--sm">編集</a>
+              <form method="post" data-confirm={`${m.name} さんを削除しますか？この操作は取り消せません。`}>
+                <input type="hidden" name="_action" value="delete" />
+                <input type="hidden" name="memberId" value={m.memberId} />
+                <button class="adm-btn adm-btn--sm adm-btn--danger">削除</button>
+              </form>
+            </div>
+          </li>
+        ))}
+      </ul>
+    )
+  }
+</Admin>
+
+<script>
+  document.querySelectorAll<HTMLFormElement>("form[data-confirm]").forEach((form) => {
+    form.addEventListener("submit", (e) => {
+      if (!confirm(form.dataset.confirm)) e.preventDefault();
+    });
+  });
+</script>

@@ -1,0 +1,109 @@
+---
+import Base from "../layouts/Base.astro";
+import {
+  clearLoginFailures,
+  createSession,
+  isLoginLocked,
+  purgeExpiredSessions,
+  recordLoginFailure,
+  safeNextPath,
+} from "../lib/server/auth.ts";
+import { getDummyHash, verifyPassword } from "../lib/server/password.ts";
+import { getUserCredentials } from "../lib/server/users.ts";
+
+const next = safeNextPath(Astro.url.searchParams.get("next"));
+if (Astro.locals.user) return Astro.redirect(next);
+
+let error = "";
+let loginId = "";
+
+if (Astro.request.method === "POST") {
+  const form = await Astro.request.formData();
+  loginId = String(form.get("loginId") ?? "").trim().slice(0, 64);
+  const password = String(form.get("password") ?? "").slice(0, 256);
+  const ip = Astro.clientAddress ?? "unknown";
+
+  if (!loginId || !password) {
+    error = "ログインIDとパスワードを入力してください";
+  } else if (isLoginLocked(ip, loginId)) {
+    error = "ログインに続けて失敗したため、一時的にロックしています。15分ほど待ってから再度お試しください";
+  } else {
+    const user = getUserCredentials(loginId);
+    const ok = await verifyPassword(password, user?.passwordHash ?? (await getDummyHash()));
+    if (user && ok && user.status === "active") {
+      clearLoginFailures(ip, loginId);
+      purgeExpiredSessions();
+      createSession(Astro.cookies, user.userId);
+      return Astro.redirect(user.mustChangePassword ? "/admin/account?required=1" : next);
+    }
+    recordLoginFailure(ip, loginId);
+    error =
+      user && ok && user.status === "suspended"
+        ? "このアカウントは停止されています。管理者にお問い合わせください"
+        : "ログインIDまたはパスワードが正しくありません";
+  }
+  Astro.response.status = 400;
+}
+---
+
+<Base title="ログイン | 電算機部 CMS" noindex>
+  <main class="relative z-[1] grid min-h-screen place-items-center px-6 py-16">
+    <div class="w-full max-w-sm">
+      <a href="/" class="mx-auto flex w-fit items-center gap-3">
+        <img src="/img/logo.svg" alt="" class="h-10 w-auto" />
+        <span class="font-jp text-sm tracking-[0.15em] text-fog-dim">電算機部 CMS</span>
+      </a>
+      <h1 class="mt-10 text-center font-jp text-2xl font-bold tracking-[0.08em] text-fog">ログイン</h1>
+
+      <form method="post" class="mt-10 space-y-5" novalidate>
+        {
+          error && (
+            <p role="alert" class="rounded-md border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+              {error}
+            </p>
+          )
+        }
+        <label class="block">
+          <span class="text-sm text-fog-dim">ログインID</span>
+          <input
+            name="loginId"
+            value={loginId}
+            required
+            autocomplete="username"
+            autocapitalize="off"
+            spellcheck="false"
+            class="field mt-2"
+            autofocus
+          />
+        </label>
+        <label class="block">
+          <span class="text-sm text-fog-dim">パスワード</span>
+          <input name="password" type="password" required autocomplete="current-password" class="field mt-2" />
+        </label>
+        <button type="submit" class="w-full rounded-full bg-volt py-3 font-medium text-fog transition hover:brightness-110">
+          ログイン
+        </button>
+      </form>
+      <p class="mt-8 text-center text-xs leading-relaxed text-fog-mute">
+        アカウントは管理者が発行します。<br />パスワードを忘れた場合は管理者にリセットを依頼してください。
+      </p>
+    </div>
+  </main>
+</Base>
+
+<style>
+  .field {
+    width: 100%;
+    padding: 0.8rem 1rem;
+    border-radius: 8px;
+    border: 1px solid var(--color-line-strong);
+    background: var(--color-ink-2);
+    color: var(--color-fog);
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .field:focus {
+    border-color: var(--color-volt-cyan);
+  }
+</style>

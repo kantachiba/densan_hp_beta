@@ -1,0 +1,22 @@
+---
+import Base from "../../../../layouts/Base.astro";
+import Nav from "../../../../components/Nav.astro";
+import ArticleView from "../../../../components/blog/ArticleView.astro";
+import { canEdit, getArticle } from "../../../../lib/server/articles.ts";
+
+const article = getArticle(Astro.params.id ?? "");
+if (!article || !canEdit(Astro.locals.user!, article)) return Astro.rewrite("/404");
+
+const shareUrl = new URL(`/news/${article.articleId}`, Astro.site ?? Astro.url).href;
+---
+
+<Base title={`[プレビュー] ${article.title || "無題"}`} noindex>
+  <Nav home={false} />
+  <div class="fixed inset-x-0 bottom-0 z-50 flex items-center justify-center gap-4 bg-signal px-4 py-2.5 text-sm text-ink">
+    <span class="font-medium">プレビュー（{article.status === "published" ? "公開中" : "下書き・未公開"}）</span>
+    <a href={`/admin/articles/${article.articleId}/edit`} class="underline">編集に戻る</a>
+  </div>
+  <main class="relative z-[1] pb-40 pt-36 md:pt-44">
+    <ArticleView article={article} shareUrl={shareUrl} />
+  </main>
+</Base>

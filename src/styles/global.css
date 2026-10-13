@@ -1,0 +1,194 @@
+@import "tailwindcss";
+
+/* ============================================================
+   DESIGN TOKENS  (Tailwind v4 @theme → generates utilities)
+   ============================================================ */
+@theme {
+  /* --- surfaces: near-black with a faint blue/violet cast --- */
+  --color-ink: #0a0a0d;
+  --color-ink-2: #0c0c12;
+  --color-ink-3: #101018;
+  --color-surface: #14141c;
+  --color-line: rgb(180 190 255 / 0.10);
+  --color-line-strong: rgb(180 190 255 / 0.20);
+
+  /* --- type: off-white, never pure white --- */
+  --color-fog: #f4f5fb;
+  --color-fog-dim: #dddfea;
+  --color-fog-mute: #9a9cb0;
+
+  /* --- electric circuit accent: blue core → cyan / violet --- */
+  --color-volt: #2b6bff;
+  --color-volt-cyan: #37e1ff;
+  --color-volt-violet: #8a5cff;
+
+  /* --- signal yellow: volt パネル上の極少量アクセント専用 --- */
+  --color-signal: #ffe14d;
+
+  /* --- fonts --- */
+  --font-sans: "Noto Sans JP", "Zen Kaku Gothic New", sans-serif;
+  --font-display: "Space Grotesk", "Archivo", sans-serif;
+  --font-jp: "Zen Kaku Gothic New", "Noto Sans JP", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  /* --- radii: エディトリアルなシャープコーナー（パネルは角丸なし） --- */
+  --radius-card: 2px;
+  --radius-pill: 999px;
+
+  /* --- rhythm (vertical spacing scale) --- */
+  --space-section: clamp(6rem, 12vw, 11rem);
+
+  /* --- easing / motion --- */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-elastic: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ============================================================
+   BASE
+   ============================================================ */
+@layer base {
+  /* NOTE: scroll-behavior: smooth は Lenis と競合するため使わない。
+     アンカーのスムース遷移は Lenis(anchors) が担い、
+     reduced-motion / JS無効時は即時ジャンプになる（意図通り）。 */
+  html {
+    scroll-padding-top: 80px;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: var(--color-ink);
+    color: var(--color-fog);
+    font-family: var(--font-sans);
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    overflow-x: hidden;
+  }
+
+  ::selection {
+    background: color-mix(in oklab, var(--color-volt) 45%, transparent);
+    color: var(--color-fog);
+  }
+
+  ::-webkit-scrollbar { width: 8px; }
+  ::-webkit-scrollbar-track { background: var(--color-ink); }
+  ::-webkit-scrollbar-thumb {
+    background: color-mix(in oklab, var(--color-volt) 40%, var(--color-ink));
+    border-radius: 999px;
+  }
+
+  a { color: inherit; text-decoration: none; }
+  img, video, svg { display: block; max-width: 100%; }
+}
+
+/* ============================================================
+   LAYOUT PRIMITIVES
+   ============================================================ */
+@layer components {
+  .container {
+    max-width: 1100px;
+    margin-inline: auto;
+    padding-inline: 24px;
+  }
+
+  .section {
+    padding-block: var(--space-section);
+  }
+
+  /* 主要CTAボタン（シアン塗り → ホバーで枠線のみに反転） */
+  .btn-volt {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.7rem;
+    min-height: 56px;
+    padding: 0 1.9rem;
+    border: 2px solid var(--color-volt-cyan);
+    border-radius: var(--radius-card);
+    background: var(--color-volt-cyan);
+    color: var(--color-ink);
+    font-size: 1rem;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    transition:
+      background-color 0.25s var(--ease-out-expo),
+      color 0.25s var(--ease-out-expo);
+  }
+
+  .btn-volt:hover {
+    background: transparent;
+    color: var(--color-volt-cyan);
+  }
+
+  .btn-volt:focus-visible {
+    outline: 2px solid var(--color-fog);
+    outline-offset: 4px;
+  }
+
+  .btn-volt:active {
+    background: color-mix(in oklab, var(--color-volt-cyan) 18%, transparent);
+  }
+}
+
+/* ============================================================
+   UTILITIES  (project-specific, composable with Tailwind)
+   ============================================================ */
+@utility glow-line {
+  /* thin luminous divider */
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--color-volt),
+    var(--color-volt-cyan),
+    transparent
+  );
+  box-shadow: 0 0 14px color-mix(in oklab, var(--color-volt) 60%, transparent);
+}
+
+@utility text-gradient {
+  background: linear-gradient(
+    100deg,
+    var(--color-fog) 30%,
+    var(--color-volt-cyan)
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* editorial column rules — ページ全体を貫く薄い縦罫線 */
+@utility page-grid {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(90deg, rgb(180 190 255 / 0.055) 1px, transparent 1px);
+  background-size: 25% 100%;
+  background-position: -1px 0;
+}
+
+/* faint film grain layered over the whole page */
+@utility grain {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  pointer-events: none;
+  opacity: 0.035;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ============================================================
+   REDUCED MOTION
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}

@@ -1,0 +1,6 @@
+---
+import ArticleEditor from "../../../components/admin/ArticleEditor.astro";
+import { listKnownCategories, listKnownTags } from "../../../lib/server/articles.ts";
+---
+
+<ArticleEditor article={null} categories={listKnownCategories()} tags={listKnownTags()} />

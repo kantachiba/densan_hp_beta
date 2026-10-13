@@ -1,0 +1,65 @@
+---
+/** 固定ナビゲーション。スクロールで背景がブラー付きで浮く（.scrolled を付与） */
+interface Props {
+  /** トップページ以外では、ロゴをトップへのリンクにする */
+  home?: boolean;
+}
+
+import { socialLinks } from "../data/site";
+import SocialIcon from "./SocialIcon.astro";
+
+const { home = true } = Astro.props;
+const onNews = Astro.url.pathname.startsWith("/news");
+---
+
+<nav id="navbar" class="fixed inset-x-0 top-0 z-50 border-b border-transparent transition-all duration-300">
+  <div class="relative mx-auto flex h-[68px] max-w-[1100px] items-center justify-center px-6">
+    <ul class="absolute left-4 flex items-center sm:left-6 sm:gap-1">
+      {
+        socialLinks.map((link) => (
+          <li>
+            <a
+              href={link.url}
+              target="_blank"
+              rel="noopener"
+              class="grid h-9 w-9 place-items-center text-fog-dim transition-colors hover:text-volt-cyan"
+              aria-label={link.label}
+            >
+              <SocialIcon id={link.id} class="h-[18px] w-[18px]" />
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+    <a href={home ? "#hero" : "/"} class="group flex items-center gap-2.5" data-anchor={home ? "" : undefined}>
+      <img src="/img/logo.svg" alt="電算機部ロゴ" class="h-10 w-auto transition-[filter] duration-300 group-hover:drop-shadow-[0_0_10px_var(--color-volt-cyan)]" />
+      <span class="font-jp text-[1.05rem] font-medium tracking-[0.15em] text-fog max-sm:hidden">長岡高専 電算機部</span>
+    </a>
+    <a
+      href="/news"
+      class:list={[
+        "absolute right-6 font-mono text-[0.72rem] uppercase tracking-[0.28em] transition-colors hover:text-volt-cyan",
+        onNews ? "text-volt-cyan" : "text-fog-dim",
+      ]}
+      aria-current={onNews ? "page" : undefined}
+    >
+      News
+    </a>
+  </div>
+</nav>
+
+<script>
+  const navbar = document.getElementById("navbar");
+  const update = () => navbar?.classList.toggle("scrolled", window.scrollY > 40);
+  window.addEventListener("scroll", update, { passive: true });
+  update();
+</script>
+
+<style>
+  nav.scrolled {
+    background: rgb(10 10 13 / 0.82);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-bottom-color: var(--color-line);
+  }
+</style>

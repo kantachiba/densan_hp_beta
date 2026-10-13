@@ -1,0 +1,43 @@
+{
+  "name": "densan_hp_beta",
+  "version": "1.0.0",
+  "description": "長岡高専 電算機部 公式サイト — Don't Stop Creation (Astro + Tailwind)",
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev",
+    "start": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro",
+    "check": "astro check",
+    "serve": "node ./dist/server/entry.mjs",
+    "cms:create-admin": "node --disable-warning=ExperimentalWarning scripts/create-admin.ts"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kantachiba/densan_hp_beta.git"
+  },
+  "license": "ISC",
+  "dependencies": {
+    "@astrojs/node": "^11.1.6",
+    "@tiptap/core": "^3.31.4",
+    "@tiptap/extension-bubble-menu": "^3.31.4",
+    "@tiptap/extension-floating-menu": "^3.31.4",
+    "@tiptap/extension-image": "^3.31.4",
+    "@tiptap/extensions": "^3.31.4",
+    "@tiptap/pm": "^3.31.4",
+    "@tiptap/starter-kit": "^3.31.4",
+    "astro": "^7.3.5",
+    "gsap": "^3.15.0",
+    "lenis": "^1.3.25",
+    "sharp": "^0.35.3"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.9",
+    "@tailwindcss/vite": "^4.3.2",
+    "@types/node": "^25.9.8",
+    "playwright": "^1.61.1",
+    "tailwindcss": "^4.3.2",
+    "typescript": "^6.0.3"
+  }
+}

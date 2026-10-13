@@ -1,0 +1,104 @@
+---
+/**
+ * Activities: 1活動 = 1行のエディトリアル構成（参考: hoshimachi-suisei.jp の MUSIC VIDEO）。
+ * メディアを大きく置き、行ごとに左右を入れ替える。行は src/data/site.ts の
+ * activities 配列から生成（配列に足すだけで行が増える）。
+ * video を指定するとカンマ区切りのプレイリストを順に再生。
+ */
+import { Image } from "astro:assets";
+import SectionHeader from "./SectionHeader.astro";
+import { activities } from "../data/site";
+---
+
+<section id="achievements" class="section relative">
+  <SectionHeader en="Activities" ja="活動紹介" />
+
+  <!-- 先頭行は巨大タイポに少し重ねる（コラージュ的オーバーラップ） -->
+  <div class="container act-overlap relative z-10 grid gap-20 md:gap-28">
+    {
+      activities.map((act, i) => (
+        <article class="grid items-center gap-6 md:grid-cols-12 md:gap-10" data-reveal>
+          <div
+            class:list={[
+              "act-media group relative overflow-hidden md:col-span-7",
+              i % 2 === 1 && "md:order-2",
+            ]}
+          >
+            {act.videos ? (
+              <video
+                class="act-img"
+                poster={act.image.src}
+                autoplay
+                muted
+                playsinline
+                preload="metadata"
+                data-playlist={act.videos.join(",")}
+                aria-label={act.alt}
+              />
+            ) : (
+              <Image
+                src={act.image}
+                alt={act.alt}
+                class="act-img"
+                widths={[640, 1024, 1600]}
+                sizes="(max-width: 768px) 100vw, 60vw"
+              />
+            )}
+          </div>
+
+          <div class:list={["md:col-span-5", i % 2 === 1 && "md:order-1"]}>
+            <p class="font-mono text-[0.72rem] tracking-[0.34em] text-volt-cyan">
+              + {String(i + 1).padStart(2, "0")}
+            </p>
+            <h3 class="act-title mt-4 font-jp text-fog">{act.title}</h3>
+            <p class="mt-4 max-w-[30em] text-[0.88rem] leading-[2] text-fog-dim">{act.desc}</p>
+          </div>
+        </article>
+      ))
+    }
+  </div>
+</section>
+
+<style>
+  .act-overlap {
+    margin-top: clamp(-2.2rem, -3.5vw, -1rem);
+  }
+
+  .act-media {
+    border: 1px solid var(--color-line);
+    background: var(--color-ink-3);
+  }
+
+  .act-media :global(.act-img) {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+  }
+
+  .act-title {
+    font-size: clamp(1.3rem, 2.4vw, 1.8rem);
+    font-weight: 900;
+    letter-spacing: 0.04em;
+    line-height: 1.4;
+  }
+</style>
+
+<script>
+  /* 動画プレイリスト: カンマ区切りのクリップを順にループ再生 */
+  document.querySelectorAll<HTMLVideoElement>("video[data-playlist]").forEach((video) => {
+    const clips = (video.dataset.playlist ?? "").split(",").map((s) => s.trim()).filter(Boolean);
+    if (!clips.length) return;
+
+    let index = 0;
+    const play = () => video.play().catch(() => {});
+
+    video.src = clips[0];
+    play();
+
+    video.addEventListener("ended", () => {
+      index = (index + 1) % clips.length;
+      video.src = clips[index];
+      play();
+    });
+  });
+</script>

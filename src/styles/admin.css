@@ -1,0 +1,169 @@
+/* 管理画面の共通パーツ */
+.adm-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4em;
+  padding: 0.55rem 1.15rem;
+  border-radius: 999px;
+  border: 1px solid var(--color-line-strong);
+  font-size: 0.875rem;
+  line-height: 1.4;
+  color: var(--color-fog);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.18s;
+}
+
+.adm-btn:hover {
+  border-color: var(--color-fog-dim);
+  background: var(--color-surface);
+}
+
+.adm-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.adm-btn--primary {
+  background: var(--color-volt);
+  border-color: var(--color-volt);
+}
+
+.adm-btn--primary:hover {
+  background: var(--color-volt);
+  border-color: var(--color-volt);
+  filter: brightness(1.12);
+}
+
+.adm-btn--danger {
+  color: #ffb4b4;
+  border-color: rgb(255 120 120 / 0.3);
+}
+
+.adm-btn--danger:hover {
+  background: rgb(255 80 80 / 0.12);
+  border-color: rgb(255 120 120 / 0.6);
+}
+
+.adm-btn--sm {
+  padding: 0.35rem 0.85rem;
+  font-size: 0.8rem;
+}
+
+.adm-btn--ghost {
+  border-color: transparent;
+  color: var(--color-fog-dim);
+}
+
+.adm-field {
+  width: 100%;
+  padding: 0.65rem 0.9rem;
+  border-radius: 8px;
+  border: 1px solid var(--color-line-strong);
+  background: var(--color-ink-2);
+  color: var(--color-fog);
+  font-size: 0.95rem;
+  outline: none;
+  transition: border-color 0.18s;
+}
+
+.adm-field:focus {
+  border-color: var(--color-volt-cyan);
+}
+
+select.adm-field {
+  appearance: none;
+  padding-right: 2.2rem;
+  background-image: linear-gradient(45deg, transparent 50%, var(--color-fog-dim) 50%),
+    linear-gradient(135deg, var(--color-fog-dim) 50%, transparent 50%);
+  background-position: calc(100% - 18px) 55%, calc(100% - 13px) 55%;
+  background-size: 5px 5px;
+  background-repeat: no-repeat;
+}
+
+.adm-label {
+  display: block;
+  margin-bottom: 0.45rem;
+  font-size: 0.82rem;
+  color: var(--color-fog-dim);
+}
+
+.adm-card {
+  border: 1px solid var(--color-line);
+  border-radius: 10px;
+  background: var(--color-ink-2);
+}
+
+.adm-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  padding: 0.15rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.adm-badge--published {
+  background: rgb(55 225 255 / 0.12);
+  color: var(--color-volt-cyan);
+}
+
+.adm-badge--draft {
+  background: var(--color-surface);
+  color: var(--color-fog-dim);
+}
+
+.adm-badge--admin {
+  background: rgb(138 92 255 / 0.16);
+  color: #c7b4ff;
+}
+
+.adm-badge--editor {
+  background: rgb(43 107 255 / 0.16);
+  color: #a9c3ff;
+}
+
+.adm-badge--suspended {
+  background: rgb(255 80 80 / 0.14);
+  color: #ffb4b4;
+}
+
+.adm-alert {
+  padding: 0.85rem 1.1rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  line-height: 1.7;
+}
+
+.adm-alert--ok {
+  border: 1px solid rgb(55 225 255 / 0.3);
+  background: rgb(55 225 255 / 0.08);
+  color: #c9f6ff;
+}
+
+.adm-alert--error {
+  border: 1px solid rgb(255 120 120 / 0.3);
+  background: rgb(255 80 80 / 0.1);
+  color: #ffd0d0;
+}
+
+.adm-tab {
+  padding: 0.45rem 0.95rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  color: var(--color-fog-dim);
+  white-space: nowrap;
+  transition: all 0.18s;
+}
+
+.adm-tab:hover {
+  color: var(--color-fog);
+}
+
+.adm-tab--on {
+  background: var(--color-surface);
+  color: var(--color-fog);
+}

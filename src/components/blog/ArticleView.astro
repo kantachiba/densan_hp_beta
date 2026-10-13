@@ -1,0 +1,150 @@
+---
+/**
+ * 記事本文の表示（公開ページと管理画面のプレビューで共通）。
+ */
+import "../../styles/article.css";
+import type { Article } from "../../lib/server/articles.ts";
+import { readingMinutes, renderDoc } from "../../lib/server/content.ts";
+import { formatDate } from "../../lib/format.ts";
+
+interface Props {
+  article: Article;
+  shareUrl: string;
+}
+
+const { article, shareUrl } = Astro.props;
+const { html, toc } = renderDoc(article.content);
+const minutes = readingMinutes(article.content);
+const shareX = `https://x.com/intent/post?${new URLSearchParams({ text: article.title, url: shareUrl })}`;
+---
+
+<article class="mx-auto max-w-[720px] px-6">
+  <header>
+    {
+      article.category && (
+        <a
+          href={`/news?category=${encodeURIComponent(article.category)}`}
+          class="font-mono text-[0.72rem] uppercase tracking-[0.3em] text-volt-cyan hover:underline"
+        >
+          {article.category}
+        </a>
+      )
+    }
+    <h1 class="article-title mt-4 font-jp text-fog">{article.title || "（無題）"}</h1>
+    <div class="mt-7 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-fog-mute">
+      <span class="font-medium text-fog-dim">{article.authorName}</span>
+      {article.publishedAt && <time datetime={article.publishedAt}>{formatDate(article.publishedAt)}</time>}
+      <span>約{minutes}分で読めます</span>
+    </div>
+  </header>
+
+  {
+    article.thumbnailUrl && (
+      <img
+        src={article.thumbnailUrl}
+        alt=""
+        class="mt-10 aspect-[1.91/1] w-full rounded-md border border-line object-cover"
+        style={`object-position: ${article.thumbnailFocusX}% ${article.thumbnailFocusY}%`}
+        fetchpriority="high"
+      />
+    )
+  }
+
+  {
+    toc.length >= 2 && (
+      <nav class="toc mt-12" aria-label="目次">
+        <p class="font-mono text-[0.7rem] uppercase tracking-[0.3em] text-fog-mute">目次</p>
+        <ol class="mt-4 space-y-2.5">
+          {toc.map((item) => (
+            <li class:list={[item.level === 3 && "pl-5"]}>
+              <a href={`#${item.id}`} class="text-[0.95rem] leading-relaxed text-fog-dim hover:text-volt-cyan">
+                {item.text}
+              </a>
+            </li>
+          ))}
+        </ol>
+      </nav>
+    )
+  }
+
+  <div class="article-body mt-12" set:html={html} />
+
+  <footer class="mt-20 border-t border-line pt-10">
+    {
+      article.tags.length > 0 && (
+        <ul class="flex flex-wrap gap-2">
+          {article.tags.map((tag) => (
+            <li>
+              <a href={`/news?tag=${encodeURIComponent(tag)}`} class="tag">
+                #{tag}
+              </a>
+            </li>
+          ))}
+        </ul>
+      )
+    }
+    <div class="mt-10 flex flex-wrap items-center gap-3">
+      <span class="mr-2 font-mono text-[0.7rem] uppercase tracking-[0.3em] text-fog-mute">Share</span>
+      <a href={shareX} target="_blank" rel="noopener noreferrer" class="share">X でシェア</a>
+      <button type="button" class="share" data-copy-url={shareUrl}>リンクをコピー</button>
+    </div>
+  </footer>
+</article>
+
+<script>
+  document.querySelectorAll<HTMLButtonElement>("[data-copy-url]").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(btn.dataset.copyUrl ?? location.href);
+        const label = btn.textContent;
+        btn.textContent = "コピーしました";
+        setTimeout(() => (btn.textContent = label), 1600);
+      } catch {}
+    });
+  });
+</script>
+
+<style>
+  .article-title {
+    font-size: clamp(1.7rem, 4.2vw, 2.4rem);
+    font-weight: 700;
+    line-height: 1.5;
+    letter-spacing: 0.04em;
+  }
+
+  .toc {
+    padding: 1.5rem 1.75rem;
+    border: 1px solid var(--color-line);
+    border-radius: 6px;
+    background: var(--color-ink-2);
+  }
+
+  .tag {
+    display: inline-block;
+    padding: 0.35rem 0.9rem;
+    border-radius: 999px;
+    background: var(--color-surface);
+    font-size: 0.85rem;
+    color: var(--color-fog-dim);
+    transition: color 0.2s;
+  }
+
+  .tag:hover {
+    color: var(--color-volt-cyan);
+  }
+
+  .share {
+    padding: 0.55rem 1.1rem;
+    border-radius: 999px;
+    border: 1px solid var(--color-line-strong);
+    font-size: 0.85rem;
+    color: var(--color-fog-dim);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .share:hover {
+    border-color: var(--color-volt-cyan);
+    color: var(--color-fog);
+  }
+</style>

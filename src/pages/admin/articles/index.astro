@@ -1,0 +1,133 @@
+---
+import Admin from "../../../layouts/Admin.astro";
+import { formatDateTime } from "../../../lib/format.ts";
+import { canEdit, deleteArticle, getArticle, listForDashboard, type ArticleStatus } from "../../../lib/server/articles.ts";
+
+const me = Astro.locals.user!;
+const isAdmin = me.role === "admin";
+let message: { type: "ok" | "error"; text: string } | null = null;
+
+if (Astro.request.method === "POST") {
+  const form = await Astro.request.formData();
+  const article = getArticle(String(form.get("articleId") ?? ""));
+  if (form.get("_action") !== "delete" || !article) {
+    message = { type: "error", text: "記事が見つかりません" };
+  } else if (!canEdit(me, article)) {
+    message = { type: "error", text: "この記事を削除する権限がありません" };
+  } else {
+    deleteArticle(article.articleId);
+    message = { type: "ok", text: `「${article.title || "無題の記事"}」を削除しました` };
+  }
+  if (message.type === "error") Astro.response.status = 403;
+}
+
+const params = Astro.url.searchParams;
+const scope = isAdmin && params.get("scope") === "all" ? "all" : "mine";
+const statusParam = params.get("status");
+const status: ArticleStatus | null = statusParam === "draft" || statusParam === "published" ? statusParam : null;
+
+const articles = listForDashboard({ authorId: scope === "all" ? undefined : me.userId, status });
+
+const href = (next: { scope?: string; status?: string | null }) => {
+  const q = new URLSearchParams();
+  const s = next.scope ?? scope;
+  const st = "status" in next ? next.status : status;
+  if (s === "all") q.set("scope", "all");
+  if (st) q.set("status", st);
+  const qs = q.toString();
+  return `/admin/articles${qs ? `?${qs}` : ""}`;
+};
+---
+
+<Admin title="記事">
+  <div class="flex flex-wrap items-end justify-between gap-4">
+    <div>
+      <h1 class="font-jp text-2xl font-bold tracking-[0.06em]">記事</h1>
+      <p class="mt-2 text-sm text-fog-mute">
+        {isAdmin ? "Admin はすべての記事を編集・削除できます。" : "自分が作成した記事の編集・削除ができます。"}
+      </p>
+    </div>
+    <a href="/admin/articles/new" class="adm-btn adm-btn--primary">＋ 新しい記事を書く</a>
+  </div>
+
+  {message && <p role="status" class:list={["adm-alert mt-8", `adm-alert--${message.type}`]}>{message.text}</p>}
+
+  <div class="mt-8 flex flex-wrap items-center justify-between gap-3">
+    <nav class="flex gap-1" aria-label="ステータス">
+      <a href={href({ status: null })} class:list={["adm-tab", !status && "adm-tab--on"]}>すべて</a>
+      <a href={href({ status: "published" })} class:list={["adm-tab", status === "published" && "adm-tab--on"]}>公開中</a>
+      <a href={href({ status: "draft" })} class:list={["adm-tab", status === "draft" && "adm-tab--on"]}>下書き</a>
+    </nav>
+    {
+      isAdmin && (
+        <nav class="flex gap-1" aria-label="表示範囲">
+          <a href={href({ scope: "mine" })} class:list={["adm-tab", scope === "mine" && "adm-tab--on"]}>自分の記事</a>
+          <a href={href({ scope: "all" })} class:list={["adm-tab", scope === "all" && "adm-tab--on"]}>全員の記事</a>
+        </nav>
+      )
+    }
+  </div>
+
+  {
+    articles.length === 0 ? (
+      <div class="adm-card mt-6 grid place-items-center px-6 py-20 text-center">
+        <p class="text-fog-dim">記事はまだありません。</p>
+        <a href="/admin/articles/new" class="adm-btn mt-6">最初の記事を書く</a>
+      </div>
+    ) : (
+      <ul class="adm-card mt-6 divide-y divide-line">
+        {articles.map((a) => (
+          <li class="flex items-center gap-4 px-4 py-4 md:gap-5 md:px-5">
+            <a href={`/admin/articles/${a.articleId}/edit`} class="hidden h-[54px] w-[103px] shrink-0 overflow-hidden rounded bg-surface sm:block">
+              {a.thumbnailUrl && (
+                <img
+                  src={a.thumbnailUrl}
+                  alt=""
+                  class="h-full w-full object-cover"
+                  style={`object-position: ${a.thumbnailFocusX}% ${a.thumbnailFocusY}%`}
+                  loading="lazy"
+                />
+              )}
+            </a>
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center gap-2">
+                <span class:list={["adm-badge", `adm-badge--${a.status}`]}>{a.status === "published" ? "公開中" : "下書き"}</span>
+                {a.category && <span class="truncate text-xs text-fog-mute">{a.category}</span>}
+              </div>
+              <a href={`/admin/articles/${a.articleId}/edit`} class="mt-1.5 block truncate font-medium text-fog hover:text-volt-cyan">
+                {a.title || <span class="text-fog-mute">（無題）</span>}
+              </a>
+              <p class="mt-1 text-xs text-fog-mute">
+                {scope === "all" && <span class="mr-3">{a.authorName}</span>}
+                更新 {formatDateTime(a.updatedAt)}
+              </p>
+            </div>
+            <div class="flex shrink-0 items-center gap-1.5">
+              <a href={`/admin/articles/${a.articleId}/edit`} class="adm-btn adm-btn--sm">編集</a>
+              <a
+                href={a.status === "published" ? `/news/${a.articleId}` : `/admin/articles/${a.articleId}/preview`}
+                target="_blank"
+                class="adm-btn adm-btn--sm adm-btn--ghost max-md:hidden"
+              >
+                {a.status === "published" ? "表示" : "プレビュー"}
+              </a>
+              <form method="post" data-confirm={`「${a.title || "無題の記事"}」を削除しますか？この操作は取り消せません。`}>
+                <input type="hidden" name="_action" value="delete" />
+                <input type="hidden" name="articleId" value={a.articleId} />
+                <button class="adm-btn adm-btn--sm adm-btn--danger">削除</button>
+              </form>
+            </div>
+          </li>
+        ))}
+      </ul>
+    )
+  }
+</Admin>
+
+<script>
+  document.querySelectorAll<HTMLFormElement>("form[data-confirm]").forEach((form) => {
+    form.addEventListener("submit", (e) => {
+      if (!confirm(form.dataset.confirm)) e.preventDefault();
+    });
+  });
+</script>

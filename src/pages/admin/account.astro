@@ -1,0 +1,98 @@
+---
+import Admin from "../../layouts/Admin.astro";
+import { validatePassword, verifyPassword } from "../../lib/server/password.ts";
+import { ROLE_LABEL, getPasswordHash, setPassword, updateDisplayName, validateDisplayName } from "../../lib/server/users.ts";
+
+const me = Astro.locals.user!;
+const required = me.mustChangePassword;
+let message: { type: "ok" | "error"; text: string } | null = null;
+let displayName = me.displayName;
+
+if (Astro.request.method === "POST") {
+  const form = await Astro.request.formData();
+  const action = String(form.get("_action") ?? "");
+
+  if (action === "profile" && !required) {
+    displayName = String(form.get("displayName") ?? "").trim();
+    const err = validateDisplayName(displayName);
+    if (err) message = { type: "error", text: err };
+    else {
+      updateDisplayName(me.userId, displayName);
+      message = { type: "ok", text: "表示名を更新しました" };
+    }
+  } else if (action === "password") {
+    const current = String(form.get("current") ?? "");
+    const next = String(form.get("next") ?? "");
+    const confirm = String(form.get("confirm") ?? "");
+    const hash = getPasswordHash(me.userId);
+    let err: string | null = null;
+    if (!hash || !(await verifyPassword(current, hash))) err = "現在のパスワードが正しくありません";
+    else if (next !== confirm) err = "新しいパスワードが確認用と一致しません";
+    else if (next === current) err = "現在と異なるパスワードを設定してください";
+    else err = validatePassword(next);
+
+    if (err) message = { type: "error", text: err };
+    else {
+      await setPassword(me.userId, next, { mustChange: false, keepSessionId: me.sessionId });
+      if (required) return Astro.redirect("/admin/articles");
+      message = { type: "ok", text: "パスワードを変更しました（他の端末はログアウトされました）" };
+    }
+  }
+  if (message?.type === "error") Astro.response.status = 400;
+}
+---
+
+<Admin title="アカウント">
+  <h1 class="font-jp text-2xl font-bold tracking-[0.06em]">アカウント</h1>
+  <p class="mt-2 text-sm text-fog-mute">
+    ログインID: <span class="font-mono text-fog-dim">{me.loginId}</span> ／ 権限: {ROLE_LABEL[me.role]}
+  </p>
+
+  {
+    required && (
+      <p class="adm-alert adm-alert--ok mt-8">
+        管理者が発行した初期パスワードでログインしています。続行するには、新しいパスワードを設定してください。
+      </p>
+    )
+  }
+  {message && <p role="status" class:list={["adm-alert mt-8", `adm-alert--${message.type}`]}>{message.text}</p>}
+
+  <div class="mt-10 grid gap-8 lg:grid-cols-2">
+    {
+      !required && (
+        <section class="adm-card p-6 md:p-8">
+          <h2 class="font-jp text-lg font-bold">プロフィール</h2>
+          <form method="post" class="mt-6 space-y-5">
+            <input type="hidden" name="_action" value="profile" />
+            <label class="block">
+              <span class="adm-label">表示名（記事の著者名として公開されます）</span>
+              <input name="displayName" value={displayName} required maxlength="40" class="adm-field" />
+            </label>
+            <button class="adm-btn adm-btn--primary">保存</button>
+          </form>
+        </section>
+      )
+    }
+
+    <section class="adm-card p-6 md:p-8">
+      <h2 class="font-jp text-lg font-bold">パスワード変更</h2>
+      <form method="post" class="mt-6 space-y-5">
+        <input type="hidden" name="_action" value="password" />
+        <input type="text" name="username" value={me.loginId} autocomplete="username" hidden />
+        <label class="block">
+          <span class="adm-label">{required ? "初期パスワード" : "現在のパスワード"}</span>
+          <input name="current" type="password" required autocomplete="current-password" class="adm-field" />
+        </label>
+        <label class="block">
+          <span class="adm-label">新しいパスワード（8文字以上）</span>
+          <input name="next" type="password" required minlength="8" maxlength="128" autocomplete="new-password" class="adm-field" />
+        </label>
+        <label class="block">
+          <span class="adm-label">新しいパスワード（確認）</span>
+          <input name="confirm" type="password" required minlength="8" maxlength="128" autocomplete="new-password" class="adm-field" />
+        </label>
+        <button class="adm-btn adm-btn--primary">パスワードを変更</button>
+      </form>
+    </section>
+  </div>
+</Admin>

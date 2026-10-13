@@ -1,0 +1,262 @@
+---
+/**
+ * メンバーの追加（/admin/members/new）と編集（/admin/members/<id>）。
+ * アイコン画像はフォームと一緒に送り、記事と同じ saveImage で WebP に変換して保存する。
+ */
+import Admin from "../../../layouts/Admin.astro";
+import { LINKS_MAX, LINK_LABEL_MAX, LINK_PRESETS, type MemberLink } from "../../../lib/member-links.ts";
+import {
+  NAME_MAX,
+  PROFILE_MAX,
+  ROLE_MAX,
+  createMember,
+  getMember,
+  parseMemberForm,
+  updateMember,
+} from "../../../lib/server/members.ts";
+import { UploadError, saveImage } from "../../../lib/server/uploads.ts";
+
+const isNew = Astro.params.id === "new";
+const member = isNew ? null : getMember(Astro.params.id ?? "");
+if (!isNew && !member) return Astro.rewrite("/404");
+
+let error: string | null = null;
+let draft = {
+  name: member?.name ?? "",
+  role: member?.role ?? "",
+  profile: member?.profile ?? "",
+  imageUrl: member?.imageUrl ?? null,
+  links: (member?.links ?? []) as Pick<MemberLink, "type" | "url" | "label">[],
+};
+
+if (Astro.request.method === "POST") {
+  let form: FormData | null = null;
+  try {
+    form = await Astro.request.formData();
+  } catch {
+    error = "送信に失敗しました（画像が大きすぎる可能性があります）";
+  }
+
+  if (form) {
+    const urls = form.getAll("linkUrl").map(String);
+    const types = form.getAll("linkType").map(String);
+    const labels = form.getAll("linkLabel").map(String);
+    const keepImage = form.get("removeImage") ? null : draft.imageUrl;
+    // エラーで再表示するときに入力を失わないよう、検証前の値を保持
+    draft = {
+      name: String(form.get("name") ?? ""),
+      role: String(form.get("role") ?? ""),
+      profile: String(form.get("profile") ?? ""),
+      imageUrl: keepImage,
+      links: urls.map((url, i) => ({ type: (types[i] ?? "other") as MemberLink["type"], url, label: labels[i] ?? "" })),
+    };
+
+    let parsed = parseMemberForm(form, keepImage);
+    const file = form.get("image");
+    if (!("error" in parsed) && file instanceof File && file.size > 0) {
+      try {
+        const { url } = await saveImage(file);
+        draft.imageUrl = url;
+        parsed = parseMemberForm(form, url);
+      } catch (err) {
+        if (!(err instanceof UploadError)) console.error("[member image]", err);
+        parsed = { error: err instanceof UploadError ? err.message : "画像の処理中にエラーが発生しました" };
+      }
+    }
+
+    if ("error" in parsed) {
+      error = parsed.error;
+    } else {
+      if (member) updateMember(member.memberId, parsed.input);
+      else createMember(parsed.input);
+      return Astro.redirect("/admin/members?saved=1", 303);
+    }
+  }
+  Astro.response.status = 422;
+}
+
+// URL 欄が空の行は保存されないので、プリセット3種は常に入力欄を出しておく
+const presetIds = Object.keys(LINK_PRESETS) as (keyof typeof LINK_PRESETS)[];
+const rows = [
+  ...presetIds.map((id) => draft.links.find((l) => l.type === id) ?? { type: id, url: "", label: "" }),
+  ...draft.links.filter((l) => l.type === "other"),
+];
+const heading = isNew ? "メンバーを追加" : "メンバーを編集";
+---
+
+<Admin title={heading}>
+  <a href="/admin/members" class="text-sm text-fog-mute hover:text-fog">← メンバー一覧</a>
+  <h1 class="mt-3 font-jp text-2xl font-bold tracking-[0.06em]">{heading}</h1>
+
+  {error && <p role="alert" class="adm-alert adm-alert--error mt-8">{error}</p>}
+
+  <form method="post" enctype="multipart/form-data" class="mt-8 grid gap-8 md:grid-cols-[220px_1fr] md:gap-10">
+    <!-- アイコン -->
+    <div>
+      <span class="adm-label">アイコン（縦長 3:4 で表示）</span>
+      <div class="member-preview adm-card" id="preview">
+        {draft.imageUrl ? <img src={draft.imageUrl} alt="" /> : <span>画像なし</span>}
+      </div>
+      <input
+        type="file"
+        name="image"
+        id="image"
+        accept="image/jpeg,image/png,image/webp,image/gif"
+        class="mt-3 block w-full text-xs text-fog-dim file:mr-3 file:cursor-pointer file:rounded-full file:border file:border-line-strong file:bg-transparent file:px-3 file:py-1.5 file:text-fog"
+        aria-label="アイコン画像を選ぶ"
+      />
+      <p class="mt-2 text-xs leading-relaxed text-fog-mute">JPEG / PNG / WebP・10MBまで。中央を基準に縦長に切り抜かれます。</p>
+      {
+        draft.imageUrl && (
+          <label class="mt-3 flex items-center gap-2 text-xs text-fog-dim">
+            <input type="checkbox" name="removeImage" value="1" />
+            いまの画像を外す
+          </label>
+        )
+      }
+    </div>
+
+    <div class="grid content-start gap-5">
+      <label>
+        <span class="adm-label">名前（必須）</span>
+        <input name="name" value={draft.name} required maxlength={NAME_MAX} class="adm-field" />
+      </label>
+      <label>
+        <span class="adm-label">役職・学年（例: 部長 / 4年）</span>
+        <input name="role" value={draft.role} maxlength={ROLE_MAX} class="adm-field" />
+      </label>
+      <label>
+        <span class="adm-label">プロフィール（{PROFILE_MAX}文字まで・改行できます）</span>
+        <textarea name="profile" rows="5" maxlength={PROFILE_MAX} class="adm-field leading-relaxed">{draft.profile}</textarea>
+      </label>
+
+      <fieldset>
+        <legend class="adm-label">リンク（空欄のものは表示されません）</legend>
+        <ul id="links" class="grid gap-2.5" data-max={LINKS_MAX}>
+          {
+            rows.map((row) =>
+              row.type === "other" ? (
+                <li class="link-row">
+                  <input type="hidden" name="linkType" value="other" />
+                  <input
+                    name="linkLabel"
+                    value={row.label}
+                    maxlength={LINK_LABEL_MAX}
+                    placeholder="表示名（例: ポートフォリオ）"
+                    class="adm-field"
+                    aria-label="リンクの表示名"
+                  />
+                  <input name="linkUrl" value={row.url} placeholder="https://…" inputmode="url" class="adm-field" aria-label="リンクのURL" />
+                  <button type="button" class="adm-btn adm-btn--sm adm-btn--danger" data-remove>
+                    削除
+                  </button>
+                </li>
+              ) : (
+                <li class="link-row">
+                  <input type="hidden" name="linkType" value={row.type} />
+                  <input type="hidden" name="linkLabel" value="" />
+                  <span class="text-sm text-fog">{LINK_PRESETS[row.type].label}</span>
+                  <input
+                    name="linkUrl"
+                    value={row.url}
+                    placeholder={`URL またはユーザー名`}
+                    autocapitalize="off"
+                    spellcheck="false"
+                    class="adm-field"
+                    aria-label={`${LINK_PRESETS[row.type].label} の URL またはユーザー名`}
+                  />
+                </li>
+              ),
+            )
+          }
+        </ul>
+        <button type="button" class="adm-btn adm-btn--sm mt-3" id="add-link">＋ ほかのリンクを追加</button>
+        <template id="link-template">
+          <li class="link-row">
+            <input type="hidden" name="linkType" value="other" />
+            <input
+              name="linkLabel"
+              maxlength={LINK_LABEL_MAX}
+              placeholder="表示名（例: ポートフォリオ）"
+              class="adm-field"
+              aria-label="リンクの表示名"
+            />
+            <input name="linkUrl" placeholder="https://…" inputmode="url" class="adm-field" aria-label="リンクのURL" />
+            <button type="button" class="adm-btn adm-btn--sm adm-btn--danger" data-remove>削除</button>
+          </li>
+        </template>
+      </fieldset>
+
+      <div class="mt-3 flex gap-3">
+        <button class="adm-btn adm-btn--primary">{isNew ? "追加する" : "保存する"}</button>
+        <a href="/admin/members" class="adm-btn">キャンセル</a>
+      </div>
+    </div>
+  </form>
+</Admin>
+
+<style>
+  .member-preview {
+    display: grid;
+    place-items: center;
+    aspect-ratio: 3 / 4;
+    max-width: 220px;
+    overflow: hidden;
+    font-size: 0.8rem;
+    color: var(--color-fog-mute);
+  }
+
+  .member-preview :global(img) {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .link-row {
+    display: grid;
+    grid-template-columns: 9rem minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.6rem;
+  }
+
+  @media (max-width: 639px) {
+    .link-row {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+</style>
+
+<script>
+  const list = document.getElementById("links")!;
+  const template = document.getElementById("link-template") as HTMLTemplateElement;
+  const addButton = document.getElementById("add-link") as HTMLButtonElement;
+  const max = Number(list.dataset.max);
+
+  const syncAddButton = () => (addButton.disabled = list.children.length >= max);
+
+  addButton.addEventListener("click", () => {
+    list.append(template.content.cloneNode(true));
+    list.querySelector<HTMLInputElement>("li:last-child input[name=linkLabel]")?.focus();
+    syncAddButton();
+  });
+
+  list.addEventListener("click", (e) => {
+    const button = (e.target as HTMLElement).closest("[data-remove]");
+    if (!button) return;
+    button.closest("li")?.remove();
+    syncAddButton();
+  });
+
+  syncAddButton();
+
+  // 選んだ画像をその場でプレビュー
+  const preview = document.getElementById("preview")!;
+  document.getElementById("image")?.addEventListener("change", (e) => {
+    const file = (e.target as HTMLInputElement).files?.[0];
+    if (!file) return;
+    const img = document.createElement("img");
+    img.src = URL.createObjectURL(file);
+    img.alt = "";
+    preview.replaceChildren(img);
+  });
+</script>

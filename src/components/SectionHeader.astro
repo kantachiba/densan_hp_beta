@@ -1,0 +1,61 @@
+---
+/**
+ * セクション見出し。
+ * 小さな「+ 日本語ラベル」(mono) と、画面左から食い込む巨大なソリッド
+ * ディスプレイタイポ（volt）の組み合わせ。後続コンテンツはタイポに
+ * わずかに重なる（コラージュ的なオーバーラップは各セクション側で指定）。
+ * data-skew = スクロール速度で歪み / data-type-parallax = 横パララックス
+ */
+interface Props {
+  en: string;
+  ja: string;
+}
+
+const { en, ja } = Astro.props;
+---
+
+<div class="section-header relative">
+  <p class="header-label container font-mono" data-reveal>
+    <span class="header-plus">+</span>
+    {ja}
+  </p>
+  <div class="section-type-wrap" aria-hidden="true">
+    <span class="section-type font-display" data-skew data-type-parallax>{en}</span>
+  </div>
+</div>
+
+<style>
+  .header-label {
+    font-size: 0.72rem;
+    letter-spacing: 0.34em;
+    text-transform: uppercase;
+    color: var(--color-volt-cyan);
+    margin-bottom: 0.6rem;
+  }
+
+  .header-plus {
+    display: inline-block;
+    margin-right: 0.4em;
+  }
+
+  .section-type-wrap {
+    width: 100%;
+    overflow: hidden;
+    pointer-events: none;
+    user-select: none;
+  }
+
+  .section-type {
+    display: block;
+    padding-left: clamp(16px, 3vw, 40px);
+    margin-left: -0.045em;
+    font-size: clamp(3.4rem, 12.5vw, 11.5rem);
+    font-weight: 600;
+    letter-spacing: -0.03em;
+    line-height: 0.92;
+    text-transform: uppercase;
+    white-space: nowrap;
+    color: var(--color-volt);
+    will-change: transform;
+  }
+</style>

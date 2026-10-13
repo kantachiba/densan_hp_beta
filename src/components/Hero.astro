@@ -1,0 +1,309 @@
+---
+/**
+ * ヒーロー + ブートシーケンス演出。
+ *
+ * ヒーロー本体（見出し等）は静的HTMLとして最初からDOMに存在し（LCP/SEO保護）、
+ * ブート演出はその上に被せる装飾オーバーレイ（aria-hidden）。
+ *
+ * オーバーレイは <html>.boot-pending が付いた時だけ表示される。
+ * その判定は Base.astro のインラインスクリプトが描画前に行う:
+ *   - prefers-reduced-motion → 表示しない
+ *   - sessionStorage に起動済みフラグ → 表示しない（見出しの再デコードのみ）
+ *   - JS無効 → 表示しない（静的ヒーローがそのまま見える）
+ */
+import { Image } from "astro:assets";
+import heroImage from "../assets/heroimage.webp";
+import { bootHeader, bootModules, bootFooter } from "../data/site";
+---
+
+<section id="hero" class="relative flex min-h-screen items-center overflow-hidden">
+  <!-- 背景: マザーボード + グラデーション + 回路グリッド -->
+  <div class="absolute inset-0 z-0">
+    <Image
+      src={heroImage}
+      alt=""
+      class="hero-img h-full w-full object-cover object-center"
+      loading="eager"
+      fetchpriority="high"
+      widths={[768, 1280, 1920]}
+      sizes="100vw"
+    />
+    <div class="hero-shade absolute inset-0"></div>
+    <div class="hero-grid absolute inset-0" aria-hidden="true"></div>
+  </div>
+
+  <!-- 本体 -->
+  <div class="relative z-10 flex w-full flex-col items-center justify-center px-6 text-center">
+    <h1
+      id="hero-headline"
+      class="hero-headline text-fog"
+      data-text="Don't Stop Creation"
+    >
+      Don't Stop Creation
+    </h1>
+    <p class="hero-clubname mt-5 font-mono text-fog-dim">NITNC Computer Club</p>
+  </div>
+
+  <!-- 画面端の小さなエッジラベル -->
+  <p class="hero-edge hero-edge--left font-mono" aria-hidden="true">NITNC Computer Club</p>
+  <p class="hero-edge hero-edge--right font-mono" aria-hidden="true">Nagaoka College</p>
+
+  <!-- 画面下端で見切れる巨大ワードマーク -->
+  <div class="hero-bleed font-display" aria-hidden="true" data-skew>DENSAN</div>
+
+  <!-- スクロールヒント -->
+  <div class="hero-scroll absolute bottom-8 left-1/2 z-10 -translate-x-1/2">
+    <span class="font-mono text-[0.7rem] tracking-[0.3em] text-fog-mute uppercase">Scroll</span>
+    <div class="scroll-line mx-auto mt-2"></div>
+  </div>
+</section>
+
+<!-- ブートオーバーレイ（装飾・boot-pending 時のみ表示） -->
+<div id="boot" class="boot-overlay" aria-hidden="true">
+  <div class="boot-log font-mono">
+    {bootHeader.map((line) => <div class="boot-line boot-line--type">{line}</div>)}
+    {bootModules.map((line) => <div class="boot-line boot-line--rapid">&nbsp;&nbsp;{line}</div>)}
+    <div class="boot-line boot-line--type">{bootFooter}<span class="boot-caret">_</span></div>
+  </div>
+  <p class="boot-skip font-mono">tap / click / any key to skip</p>
+</div>
+
+<style>
+  /* ---------- 背景 ---------- */
+  .hero-img {
+    filter: saturate(0.6) brightness(0.45);
+    transform: scale(1.06);
+  }
+
+  .hero-shade {
+    background:
+      linear-gradient(to bottom, rgb(10 10 13 / 0.35) 0%, rgb(10 10 13 / 0.05) 40%, rgb(10 10 13 / 0.85) 100%),
+      linear-gradient(to right, rgb(10 10 13 / 0.7) 0%, rgb(10 10 13 / 0) 60%);
+  }
+
+  .hero-grid {
+    background-image:
+      linear-gradient(rgb(55 225 255 / 0.045) 1px, transparent 1px),
+      linear-gradient(90deg, rgb(55 225 255 / 0.045) 1px, transparent 1px);
+    background-size: 60px 60px;
+    mask-image: linear-gradient(to bottom, transparent 0%, black 30%, black 70%, transparent 100%);
+  }
+
+  /* ---------- タイポ ---------- */
+  /* 旧サイト踏襲: Orbit の細身テック書体 */
+  .hero-headline {
+    font-family: "Orbit", "Cascadia Code", var(--font-mono), monospace;
+    font-size: clamp(1.6rem, 4.5vw, 3.4rem);
+    font-weight: 400;
+    letter-spacing: 0.02em;
+    line-height: 1.1;
+  }
+
+  .hero-clubname {
+    font-size: clamp(0.85rem, 2vw, 1.05rem);
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+  }
+
+  .hero-bleed {
+    position: absolute;
+    left: 50%;
+    bottom: -0.14em;
+    transform: translateX(-50%);
+    z-index: 1;
+    font-weight: 700;
+    font-size: clamp(5.5rem, 27vw, 26rem);
+    line-height: 0.78;
+    letter-spacing: -0.04em;
+    white-space: nowrap;
+    color: transparent;
+    -webkit-text-stroke: 1.5px rgb(244 245 251 / 0.16);
+    user-select: none;
+    pointer-events: none;
+  }
+
+  .hero-edge {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 1;
+    font-size: 0.68rem;
+    letter-spacing: 0.35em;
+    text-transform: uppercase;
+    color: var(--color-fog-dim);
+    user-select: none;
+  }
+
+  .hero-edge--left { left: clamp(16px, 3vw, 40px); }
+  .hero-edge--right { right: clamp(16px, 3vw, 40px); }
+
+  @media (max-width: 900px) {
+    .hero-edge { display: none; }
+  }
+
+  .scroll-line {
+    width: 1px;
+    height: 44px;
+    background: linear-gradient(to bottom, var(--color-volt-cyan), transparent);
+    animation: scroll-pulse 2.2s ease-in-out infinite;
+  }
+
+  @keyframes scroll-pulse {
+    0%, 100% { transform: scaleY(0.4); transform-origin: top; opacity: 0.4; }
+    50% { transform: scaleY(1); opacity: 1; }
+  }
+
+  /* ---------- ブートオーバーレイ ---------- */
+  .boot-overlay {
+    display: none; /* boot-pending が付いた時だけ表示（下記） */
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    flex-direction: column;
+    justify-content: center;
+    padding: clamp(1.5rem, 6vw, 5rem);
+    background: var(--color-ink);
+  }
+
+  :global(html.boot-pending) .boot-overlay {
+    display: flex;
+  }
+
+  .boot-log {
+    font-size: clamp(0.72rem, 1.6vw, 0.95rem);
+    line-height: 1.9;
+    color: var(--color-fog-dim);
+    text-align: left;
+  }
+
+  .boot-line {
+    visibility: hidden; /* GSAP が順に見せる */
+    white-space: pre;
+  }
+
+  .boot-line--type {
+    color: var(--color-volt-cyan);
+  }
+
+  .boot-caret {
+    display: inline-block;
+    animation: caret-blink 0.7s steps(1) infinite;
+  }
+
+  @keyframes caret-blink {
+    50% { opacity: 0; }
+  }
+
+  .boot-skip {
+    position: absolute;
+    right: clamp(1rem, 4vw, 2.5rem);
+    bottom: clamp(1rem, 4vw, 2rem);
+    font-size: 0.68rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--color-fog-mute);
+  }
+
+  /* モバイルはログを間引いて見せる（文字量を減らす） */
+  @media (max-width: 640px) {
+    .boot-line--rapid:nth-child(odd) {
+      display: none;
+    }
+  }
+</style>
+
+<script>
+  /**
+   * ブートシーケンス。
+   * 総尺 ~2.4s / クリック・タップ・キー・スクロールで即スキップ /
+   * セッション内は初回のみフル再生（再訪は見出しデコードのみ）
+   */
+  import { gsap } from "gsap";
+  import { SplitText } from "gsap/SplitText";
+  import { ScrambleTextPlugin } from "gsap/ScrambleTextPlugin";
+
+  gsap.registerPlugin(SplitText, ScrambleTextPlugin);
+
+  const BOOT_KEY = "densan-booted";
+  const SCRAMBLE_CHARS = "01<>/_#$%&{}ABCDEF";
+
+  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const headline = document.getElementById("hero-headline");
+  const overlay = document.getElementById("boot");
+  const finalText = headline?.dataset.text ?? "";
+
+  function decodeHeadline(duration = 0.8) {
+    if (!headline) return;
+    gsap.to(headline, {
+      duration,
+      scrambleText: { text: finalText, chars: SCRAMBLE_CHARS, speed: 1.2 },
+      ease: "none",
+    });
+  }
+
+  function finishBoot() {
+    try {
+      sessionStorage.setItem(BOOT_KEY, "1");
+    } catch {}
+    document.documentElement.classList.remove("boot-pending");
+    overlay?.remove();
+  }
+
+  if (reduceMotion) {
+    // 静的ヒーローを即表示（オーバーレイは boot-pending が無いので非表示のまま）
+    overlay?.remove();
+  } else if (!document.documentElement.classList.contains("boot-pending")) {
+    // 再訪: フルブートは再生せず、見出しのデコードだけ
+    overlay?.remove();
+    decodeHeadline(0.7);
+  } else if (overlay && headline) {
+    const typeLines = overlay.querySelectorAll<HTMLElement>(".boot-line--type");
+    const rapidLines = overlay.querySelectorAll<HTMLElement>(".boot-line--rapid");
+    const heroContent = [headline.parentElement, document.querySelector(".hero-bleed")];
+
+    const tl = gsap.timeline({
+      onComplete: finishBoot,
+      defaults: { ease: "none" },
+    });
+
+    // 要点行はタイプ表示（1行 ~0.28s）、モジュール一覧はラピッドファイア
+    typeLines.forEach((line, i) => {
+      const split = new SplitText(line, { type: "chars" });
+      const at = i < typeLines.length - 1 ? undefined : "+=0.05";
+      tl.set(line, { visibility: "visible" }, at);
+      tl.from(split.chars, { visibility: "hidden", stagger: 0.012, duration: 0.001 });
+      if (i === typeLines.length - 2) {
+        // "initializing..." の直後にモジュール一覧を連続表示
+        tl.set(rapidLines, { visibility: "visible", stagger: 0.055 }, "+=0.1");
+        tl.to({}, { duration: rapidLines.length * 0.055 + 0.15 });
+      }
+    });
+
+    // 見出しスクランブル → オーバーレイをワイプで剥がす
+    tl.set(headline, {
+      scrambleText: { text: finalText, chars: SCRAMBLE_CHARS },
+    });
+    tl.to(overlay, {
+      clipPath: "inset(0 0 100% 0)",
+      duration: 0.55,
+      ease: "power4.inOut",
+      delay: 0.25,
+    });
+    tl.from(heroContent, { opacity: 0, y: 24, duration: 0.6, ease: "power3.out", stagger: 0.08 }, "<0.2");
+    tl.add(() => decodeHeadline(0.7), "<");
+
+    // スキップ: どの入力でもタイムラインを最終状態へ
+    const skip = () => {
+      tl.progress(1); // onComplete → finishBoot
+      window.removeEventListener("keydown", skip);
+      window.removeEventListener("wheel", skip);
+      window.removeEventListener("touchstart", skip);
+      overlay.removeEventListener("pointerdown", skip);
+      decodeHeadline(0.4);
+    };
+    overlay.addEventListener("pointerdown", skip, { once: true });
+    window.addEventListener("keydown", skip, { once: true });
+    window.addEventListener("wheel", skip, { once: true, passive: true });
+    window.addEventListener("touchstart", skip, { once: true, passive: true });
+  }
+</script>

@@ -1,0 +1,48 @@
+---
+/**
+ * Links: SNSロゴ。src/data/site.ts の socialLinks から生成。
+ * ロゴの実体は SocialIcon.astro が id ごとに出し分ける。
+ */
+import { socialLinks } from "../data/site";
+import SocialIcon from "./SocialIcon.astro";
+import SectionHeader from "./SectionHeader.astro";
+---
+
+<section id="links" class="section relative">
+  <SectionHeader en="Links" ja="リンク" />
+
+  <div class="container mt-16 md:mt-20">
+    <p class="mb-10 text-center font-jp text-[0.95rem] font-bold tracking-[0.08em] text-fog" data-reveal>
+      ご依頼・お問い合わせは X へ
+    </p>
+    <div class="flex items-center justify-center gap-6 md:gap-14" data-reveal>
+      {
+        socialLinks.map((link) => (
+          <a
+            href={link.url}
+            target="_blank"
+            rel="noopener"
+            class="link-logo grid h-20 w-20 place-items-center rounded-card border border-line text-fog-dim md:h-24 md:w-24"
+            aria-label={link.label}
+          >
+            <SocialIcon id={link.id} class="h-8 w-8 md:h-9 md:w-9" />
+          </a>
+        ))
+      }
+    </div>
+  </div>
+</section>
+
+<style>
+  .link-logo {
+    background: var(--color-ink-2);
+    transition:
+      border-color 0.35s var(--ease-out-expo),
+      color 0.35s var(--ease-out-expo);
+  }
+
+  .link-logo:hover {
+    color: var(--color-fog);
+    border-color: color-mix(in oklab, var(--color-volt-cyan) 55%, transparent);
+  }
+</style>

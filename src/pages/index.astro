@@ -1,0 +1,31 @@
+---
+import Base from "../layouts/Base.astro";
+import Nav from "../components/Nav.astro";
+import Hero from "../components/Hero.astro";
+import LatestNews from "../components/LatestNews.astro";
+import About from "../components/About.astro";
+import Activities from "../components/Activities.astro";
+import Works from "../components/Works.astro";
+import Members from "../components/Members.astro";
+import Links from "../components/Links.astro";
+import Footer from "../components/Footer.astro";
+---
+
+<Base home>
+  <Nav />
+  <main>
+    <Hero />
+    <LatestNews />
+    <About />
+    <Activities />
+    <Works />
+    <Members />
+    <Links />
+  </main>
+  <Footer />
+</Base>
+
+<script>
+  import { initMotion } from "../scripts/motion";
+  initMotion();
+</script>

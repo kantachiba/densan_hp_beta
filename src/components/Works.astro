@@ -1,0 +1,80 @@
+---
+/**
+ * Works: エディトリアル三分割配置。
+ * 左 = タグ + タイトル + 説明 + CTA / 右 = voltフレームのメディア。
+ * src/data/site.ts の works 配列に足すだけで1点ずつ増える。
+ */
+import { Image } from "astro:assets";
+import SectionHeader from "./SectionHeader.astro";
+import Icon from "./Icon.astro";
+import { works } from "../data/site";
+---
+
+<section id="works" class="section relative">
+  <SectionHeader en="Works" ja="制作物" />
+
+  <div class="container mt-14 grid gap-24 md:mt-20">
+    {
+      works.map((work) => (
+        <article class="grid items-center gap-8 md:grid-cols-[1fr_1.7fr] md:gap-14">
+          <div data-reveal>
+            <span class="work-tag font-mono">{work.tag}</span>
+            <h3 class="work-title mt-4 font-jp text-fog">{work.title}</h3>
+            <p class="mt-4 text-[0.85rem] leading-[1.9] text-fog-dim">{work.desc}</p>
+            <a href={work.url} target="_blank" rel="noopener" class="btn-volt mt-8 font-jp max-md:w-full">
+              <Icon name="play" class="h-4 w-4 shrink-0" />
+              <span>{work.cta}</span>
+              <Icon name="external" class="h-4 w-4 shrink-0 opacity-70" />
+              <span class="sr-only">（新しいタブで開きます）</span>
+            </a>
+          </div>
+
+          <div class="work-frame relative overflow-hidden" data-reveal data-tilt>
+            <Image
+              src={work.image}
+              alt={work.alt}
+              class="work-img h-full w-full object-cover"
+              widths={[480, 960, 1440]}
+              sizes="(max-width: 768px) 100vw, 55vw"
+            />
+          </div>
+        </article>
+      ))
+    }
+  </div>
+</section>
+
+<style>
+  .work-tag {
+    display: inline-block;
+    border: 1px solid var(--color-line-strong);
+    padding: 0.3rem 0.9rem;
+    font-size: 0.68rem;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: var(--color-volt-cyan);
+  }
+
+  .work-title {
+    font-size: clamp(1.6rem, 3vw, 2.2rem);
+    font-weight: 900;
+    letter-spacing: 0.03em;
+    line-height: 1.3;
+  }
+
+  /* 参考: メディアを縁取るソリッドフレーム */
+  .work-frame {
+    border: 3px solid var(--color-volt);
+    background: var(--color-ink-2);
+  }
+
+  .work-img {
+    aspect-ratio: 16 / 10;
+    transform: scale(1.03);
+    transition: transform 0.8s var(--ease-out-expo);
+  }
+
+  .work-frame:hover .work-img {
+    transform: scale(1.07);
+  }
+</style>

@@ -1,0 +1,283 @@
+---
+import Admin from "../../../layouts/Admin.astro";
+import { formatDate } from "../../../lib/format.ts";
+import { generatePassword, validatePassword } from "../../../lib/server/password.ts";
+import {
+  ROLE_LABEL,
+  countActiveAdmins,
+  createUser,
+  deleteUser,
+  getUserById,
+  isRole,
+  listUsers,
+  loginIdExists,
+  setPassword,
+  updateUserRole,
+  updateUserStatus,
+  validateDisplayName,
+  validateLoginId,
+} from "../../../lib/server/users.ts";
+
+const me = Astro.locals.user!;
+
+let message: { type: "ok" | "error"; text: string } | null = null;
+/** 発行・リセットしたパスワード（この画面で一度だけ表示） */
+let issued: { loginId: string; displayName: string; password: string; reset: boolean } | null = null;
+let draft = { loginId: "", displayName: "", role: "editor" };
+
+if (Astro.request.method === "POST") {
+  const form = await Astro.request.formData();
+  const action = String(form.get("_action") ?? "");
+  const targetId = String(form.get("userId") ?? "");
+  const target = targetId ? getUserById(targetId) : null;
+  const fail = (text: string) => (message = { type: "error", text });
+
+  /** 最後の有効な Admin を失う操作か */
+  const losesLastAdmin = () => target?.role === "admin" && target.status === "active" && countActiveAdmins() <= 1;
+
+  if (action === "create") {
+    draft = {
+      loginId: String(form.get("loginId") ?? "").trim(),
+      displayName: String(form.get("displayName") ?? "").trim(),
+      role: String(form.get("role") ?? "editor"),
+    };
+    const typed = String(form.get("password") ?? "");
+    const password = typed || generatePassword();
+    const err =
+      validateLoginId(draft.loginId) ??
+      validateDisplayName(draft.displayName) ??
+      (isRole(draft.role) ? null : "権限の値が不正です") ??
+      validatePassword(password) ??
+      (loginIdExists(draft.loginId) ? "そのログインIDは既に使われています" : null);
+    if (err) {
+      fail(err);
+    } else {
+      const user = await createUser({
+        loginId: draft.loginId,
+        displayName: draft.displayName,
+        role: draft.role as "admin" | "editor",
+        password,
+        mustChangePassword: true,
+      });
+      issued = { loginId: user.loginId, displayName: user.displayName, password, reset: false };
+      draft = { loginId: "", displayName: "", role: "editor" };
+    }
+  } else if (!target) {
+    fail("対象のユーザーが見つかりません");
+  } else if (target.userId === me.userId) {
+    fail("自分自身のアカウントはこの画面から変更できません（アカウント画面を使ってください）");
+  } else if (action === "role") {
+    const role = String(form.get("role") ?? "");
+    if (!isRole(role)) fail("権限の値が不正です");
+    else if (role === target.role) message = { type: "ok", text: "権限に変更はありません" };
+    else if (role === "editor" && losesLastAdmin()) fail("有効な Admin が1人もいなくなるため変更できません");
+    else {
+      updateUserRole(target.userId, role);
+      message = { type: "ok", text: `${target.displayName} さんの権限を ${ROLE_LABEL[role]} に変更しました` };
+    }
+  } else if (action === "suspend") {
+    if (losesLastAdmin()) fail("有効な Admin が1人もいなくなるため停止できません");
+    else {
+      updateUserStatus(target.userId, "suspended");
+      message = { type: "ok", text: `${target.displayName} さんのアカウントを停止しました（ログイン中のセッションも無効化）` };
+    }
+  } else if (action === "activate") {
+    updateUserStatus(target.userId, "active");
+    message = { type: "ok", text: `${target.displayName} さんのアカウントを再開しました` };
+  } else if (action === "reset") {
+    const password = generatePassword();
+    await setPassword(target.userId, password, { mustChange: true });
+    issued = { loginId: target.loginId, displayName: target.displayName, password, reset: true };
+  } else if (action === "delete") {
+    if (losesLastAdmin()) fail("有効な Admin が1人もいなくなるため削除できません");
+    else {
+      const moved = deleteUser(target.userId, me.userId);
+      message = {
+        type: "ok",
+        text: `${target.displayName} さんのアカウントを削除しました${moved ? `（記事 ${moved} 件はあなたに引き継がれました）` : ""}`,
+      };
+    }
+  } else {
+    fail("不正な操作です");
+  }
+  if (message?.type === "error") Astro.response.status = 400;
+}
+
+const users = listUsers();
+---
+
+<Admin title="ユーザー管理">
+  <h1 class="font-jp text-2xl font-bold tracking-[0.06em]">ユーザー管理</h1>
+  <p class="mt-2 text-sm text-fog-mute">運営スタッフのアカウント発行・権限変更・停止・削除ができます（Admin のみ）。</p>
+
+  {message && <p role="status" class:list={["adm-alert mt-8", `adm-alert--${message.type}`]}>{message.text}</p>}
+
+  {
+    issued && (
+      <div class="adm-alert adm-alert--ok mt-8" role="status">
+        <p class="font-medium text-fog">
+          {issued.displayName} さんの{issued.reset ? "パスワードをリセットしました" : "アカウントを発行しました"}
+        </p>
+        <p class="mt-1 text-xs text-fog-dim">
+          このパスワードはこの画面でしか表示されません。安全な方法で本人に伝えてください（初回ログイン時に変更を求められます）。
+        </p>
+        <dl class="mt-4 grid max-w-md grid-cols-[auto_1fr] gap-x-4 gap-y-2 font-mono text-sm">
+          <dt class="text-fog-dim">ログインID</dt>
+          <dd class="select-all text-fog">{issued.loginId}</dd>
+          <dt class="text-fog-dim">{issued.reset ? "新パスワード" : "初期パスワード"}</dt>
+          <dd class="select-all text-fog">{issued.password}</dd>
+        </dl>
+        <button
+          type="button"
+          class="adm-btn adm-btn--sm mt-4"
+          data-copy={`ログインID: ${issued.loginId}\nパスワード: ${issued.password}\nログイン: ${new URL("/login", Astro.url).href}`}
+        >
+          ログイン情報をコピー
+        </button>
+      </div>
+    )
+  }
+
+  <section class="adm-card mt-10 p-6 md:p-8">
+    <h2 class="font-jp text-lg font-bold">スタッフアカウントを発行</h2>
+    <form method="post" class="mt-6 grid gap-5 md:grid-cols-2">
+      <input type="hidden" name="_action" value="create" />
+      <label>
+        <span class="adm-label">ログインID（半角英数字と _ . - / 3〜32文字）</span>
+        <input
+          name="loginId"
+          value={draft.loginId}
+          required
+          pattern="[a-zA-Z0-9_.\-]{3,32}"
+          autocomplete="off"
+          autocapitalize="off"
+          spellcheck="false"
+          class="adm-field"
+        />
+      </label>
+      <label>
+        <span class="adm-label">表示名（記事の著者名として公開されます）</span>
+        <input name="displayName" value={draft.displayName} required maxlength="40" class="adm-field" />
+      </label>
+      <label>
+        <span class="adm-label">権限</span>
+        <select name="role" class="adm-field">
+          <option value="editor" selected={draft.role === "editor"}>Editor（運営スタッフ）— 自分の記事のみ</option>
+          <option value="admin" selected={draft.role === "admin"}>Admin（オーナー）— 全機能</option>
+        </select>
+      </label>
+      <label>
+        <span class="adm-label">初期パスワード（空欄なら自動生成）</span>
+        <input name="password" type="text" minlength="8" maxlength="128" autocomplete="new-password" class="adm-field font-mono" />
+      </label>
+      <div class="md:col-span-2">
+        <button class="adm-btn adm-btn--primary">アカウントを発行する</button>
+      </div>
+    </form>
+  </section>
+
+  <section class="mt-12">
+    <h2 class="font-jp text-lg font-bold">登録済みユーザー <span class="ml-1 text-sm font-normal text-fog-mute">{users.length}人</span></h2>
+    <div class="adm-card mt-5 overflow-x-auto">
+      <table class="w-full min-w-[820px] text-sm">
+        <thead>
+          <tr class="border-b border-line text-left text-xs text-fog-mute">
+            <th class="px-5 py-3 font-normal">ユーザー</th>
+            <th class="px-3 py-3 font-normal">権限</th>
+            <th class="px-3 py-3 font-normal">状態</th>
+            <th class="px-3 py-3 font-normal">記事</th>
+            <th class="px-3 py-3 font-normal">登録日</th>
+            <th class="px-5 py-3 text-right font-normal">操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          {
+            users.map((u) => {
+              const self = u.userId === me.userId;
+              return (
+                <tr class="border-b border-line last:border-0">
+                  <td class="px-5 py-4">
+                    <p class="text-fog">
+                      {u.displayName}
+                      {self && <span class="ml-2 text-xs text-fog-mute">（あなた）</span>}
+                    </p>
+                    <p class="mt-0.5 font-mono text-xs text-fog-mute">{u.loginId}</p>
+                    {u.mustChangePassword && <p class="mt-1 text-xs text-signal/80">初期パスワード未変更</p>}
+                  </td>
+                  <td class="px-3 py-4">
+                    {self ? (
+                      <span class:list={["adm-badge", `adm-badge--${u.role}`]}>{u.role === "admin" ? "Admin" : "Editor"}</span>
+                    ) : (
+                      <form method="post" class="flex items-center gap-2" data-autosubmit>
+                        <input type="hidden" name="_action" value="role" />
+                        <input type="hidden" name="userId" value={u.userId} />
+                        <select name="role" class="adm-field !w-auto !py-1.5 !text-xs" aria-label={`${u.displayName} の権限`}>
+                          <option value="editor" selected={u.role === "editor"}>Editor</option>
+                          <option value="admin" selected={u.role === "admin"}>Admin</option>
+                        </select>
+                        <noscript><button class="adm-btn adm-btn--sm">変更</button></noscript>
+                      </form>
+                    )}
+                  </td>
+                  <td class="px-3 py-4">
+                    {u.status === "active" ? (
+                      <span class="adm-badge adm-badge--published">有効</span>
+                    ) : (
+                      <span class="adm-badge adm-badge--suspended">停止中</span>
+                    )}
+                  </td>
+                  <td class="px-3 py-4 text-fog-dim">{u.articleCount}</td>
+                  <td class="px-3 py-4 text-fog-dim">{formatDate(u.createdAt)}</td>
+                  <td class="px-5 py-4">
+                    {!self && (
+                      <div class="flex justify-end gap-2">
+                        <form method="post" data-confirm={`${u.displayName} さんのパスワードをリセットしますか？\n現在のパスワードは使えなくなり、ログイン中の端末もログアウトされます。`}>
+                          <input type="hidden" name="_action" value="reset" />
+                          <input type="hidden" name="userId" value={u.userId} />
+                          <button class="adm-btn adm-btn--sm">PWリセット</button>
+                        </form>
+                        <form
+                          method="post"
+                          data-confirm={u.status === "active" ? `${u.displayName} さんのアカウントを停止しますか？\nログインできなくなりますが、公開済みの記事はそのまま残ります。` : undefined}
+                        >
+                          <input type="hidden" name="_action" value={u.status === "active" ? "suspend" : "activate"} />
+                          <input type="hidden" name="userId" value={u.userId} />
+                          <button class="adm-btn adm-btn--sm">{u.status === "active" ? "停止" : "再開"}</button>
+                        </form>
+                        <form
+                          method="post"
+                          data-confirm={`${u.displayName} さん（${u.loginId}）を削除しますか？この操作は取り消せません。${u.articleCount ? `\n記事 ${u.articleCount} 件はあなたに引き継がれます。` : ""}`}
+                        >
+                          <input type="hidden" name="_action" value="delete" />
+                          <input type="hidden" name="userId" value={u.userId} />
+                          <button class="adm-btn adm-btn--sm adm-btn--danger">削除</button>
+                        </form>
+                      </div>
+                    )}
+                  </td>
+                </tr>
+              );
+            })
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
+</Admin>
+
+<script>
+  document.querySelectorAll<HTMLFormElement>("form[data-confirm]").forEach((form) => {
+    form.addEventListener("submit", (e) => {
+      if (!confirm(form.dataset.confirm)) e.preventDefault();
+    });
+  });
+  document.querySelectorAll<HTMLFormElement>("form[data-autosubmit]").forEach((form) => {
+    form.querySelector("select")?.addEventListener("change", () => form.requestSubmit());
+  });
+  document.querySelectorAll<HTMLButtonElement>("[data-copy]").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      await navigator.clipboard.writeText(btn.dataset.copy ?? "");
+      btn.textContent = "コピーしました";
+    });
+  });
+</script>

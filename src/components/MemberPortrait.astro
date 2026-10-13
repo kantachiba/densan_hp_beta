@@ -1,0 +1,34 @@
+---
+/**
+ * メンバーのアイコン（縦長 3:4）。
+ * 画像が未設定のメンバーにはシルエットのプレースホルダーを出す。
+ */
+interface Props {
+  imageUrl: string | null;
+}
+
+const { imageUrl } = Astro.props;
+---
+
+<div class="member-portrait">
+  {
+    imageUrl ? (
+      <img src={imageUrl} alt="" class="h-full w-full object-cover" loading="lazy" decoding="async" />
+    ) : (
+      <svg viewBox="0 0 90 120" class="h-full w-full" aria-hidden="true">
+        <circle cx="45" cy="46" r="17" fill="currentColor" />
+        <path d="M11 120c0-23 14-38 34-38s34 15 34 38z" fill="currentColor" />
+      </svg>
+    )
+  }
+</div>
+
+<style>
+  .member-portrait {
+    aspect-ratio: 3 / 4;
+    overflow: hidden;
+    border: 1px solid var(--color-line-strong);
+    background: var(--color-ink-3);
+    color: var(--color-line-strong);
+  }
+</style>
